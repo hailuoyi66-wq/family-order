@@ -291,7 +291,6 @@
       const cat = e.target.dataset.cat;
       const target = document.getElementById('cat-' + cat);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // 高亮当前标签
       document.querySelectorAll('.nav-tag').forEach(t => t.classList.remove('active'));
       e.target.classList.add('active');
     }
@@ -399,8 +398,7 @@
     db.ref('orders').once('value', snapshot => {
       const keysToHide = [];
       snapshot.forEach(c => {
-        const o = c.val();
-        if (o.status === 'done' || o.status === 'rejected') keysToHide.push(c.key);
+        if (c.val().status === 'done' || c.val().status === 'rejected') keysToHide.push(c.key);
       });
       if (!keysToHide.length) return showToast('没有可隐藏的订单');
       hideOrders(keysToHide);
