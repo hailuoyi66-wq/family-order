@@ -14,6 +14,7 @@
         .reject-btn { background: #f44336; }
         .done-btn { background: #4CAF50; }
         .time { color: #999; font-size: 14px; }
+        .note { color: #555; font-size: 14px; margin: 5px 0; }
         audio { display: none; }
         .pull-refresh { text-align: center; padding: 8px; color: #999; font-size: 14px; display: none; }
     </style>
@@ -37,7 +38,6 @@
 
         function playSound() { sound.play().catch(()=>{}); }
 
-        // 请求通知权限
         function requestNotificationPermission() {
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
@@ -45,7 +45,6 @@
         }
         requestNotificationPermission();
 
-        // 弹出系统通知（前台/后台都可能显示，取决于系统）
         function showNotification(order) {
             if ('Notification' in window && Notification.permission === 'granted') {
                 new Notification('🍽️ 新订单', {
@@ -56,7 +55,6 @@
             }
         }
 
-        // 语音播报（仅前台有效）
         function speakOrder(order) {
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(
@@ -72,7 +70,6 @@
             database.ref('orders/' + key).update({ status: status });
         }
 
-        // 监听新订单
         database.ref('orders').on('child_added', snapshot => {
             const order = snapshot.val();
             addOrderCard(snapshot.key, order);
@@ -83,14 +80,12 @@
             }
         });
 
-        // 监听状态变化
         database.ref('orders').on('child_changed', snapshot => {
             const oldCard = document.getElementById('card-' + snapshot.key);
             if (oldCard) oldCard.remove();
             addOrderCard(snapshot.key, snapshot.val());
         });
 
-        // 监听订单删除（如果将来加了删除功能）
         database.ref('orders').on('child_removed', snapshot => {
             const card = document.getElementById('card-' + snapshot.key);
             if (card) card.remove();
@@ -108,6 +103,7 @@
             card.id = 'card-' + key;
             card.innerHTML = `
                 <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
+                ${order.note ? `<div class="note">📝 ${order.note}</div>` : ''}
                 <div class="time">🕒 ${order.time}</div>
             `;
 
