@@ -7,14 +7,24 @@
     <style>
         body { font-family: Arial, sans-serif; max-width: 450px; margin: 20px auto; padding: 0 15px; background: #fffaf5; }
         h2 { text-align: center; color: #FF6B35; }
-        .order-card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .done-btn { background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
+        .order-card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-group { display: flex; gap: 6px; margin-top: 10px; }
+        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; color: white; }
+        .accept-btn { background: #2196F3; }
+        .reject-btn { background: #f44336; }
+        .done-btn { background: #4CAF50; }
+        .history-toggle { background: #eee; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 15px; font-size: 16px; cursor: pointer; }
+        .time { color: #999; font-size: 14px; }
         audio { display: none; }
     </style>
 </head>
 <body>
     <h2>📋 点菜单</h2>
-    <div id="order-list">等待下单...</div>
+    <div id="active-orders">等待下单...</div>
+    
+    <button class="history-toggle" id="toggle-history">📜 查看历史记录</button>
+    <div id="history-orders" style="display:none; margin-top:10px;"></div>
+
     <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -25,36 +35,106 @@
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const listDiv = document.getElementById('order-list');
         const sound = document.getElementById('sound');
 
-        function playSound() {
-            sound.play().catch(() => {});
+        function playSound() { sound.play().catch(()=>{}); }
+
+        function updateOrder(key, status) {
+            database.ref('orders/' + key).update({ status: status });
         }
 
+        function createOrderCard(key, order) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+                <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
+                <div class="time">🕒 ${order.time}</div>
+            `;
+
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+
+            if (order.status === 'new') {
+                const acceptBtn = document.createElement('button');
+                acceptBtn.className = 'action-btn accept-btn';
+                acceptBtn.textContent = '接单';
+                acceptBtn.onclick = () => updateOrder(key, 'accepted');
+                
+                const rejectBtn = document.createElement('button');
+                rejectBtn.className = 'action-btn reject-btn';
+                rejectBtn.textContent = '今天没有';
+                rejectBtn.onclick = () => updateOrder(key, 'rejected');
+                
+                btnGroup.appendChild(acceptBtn);
+                btnGroup.appendChild(rejectBtn);
+            } else if (order.status === 'accepted') {
+                const doneBtn = document.createElement('button');
+                doneBtn.className = 'action-btn done-btn';
+                doneBtn.textContent = '做好了';
+                doneBtn.onclick = () => updateOrder(key, 'done');
+                btnGroup.appendChild(doneBtn);
+            } else {
+                // done 或 rejected 只显示状态
+                const statusText = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
+                card.innerHTML += `<div style="margin-top:8px;color:#888;">${statusText}</div>`;
+            }
+
+            card.appendChild(btnGroup);
+            return card;
+        }
+
+        // 监听全部订单，自动分区
         database.ref('orders').on('value', snapshot => {
-            listDiv.innerHTML = '';
+            const activeDiv = document.getElementById('active-orders');
+            const historyDiv = document.getElementById('history-orders');
+            activeDiv.innerHTML = '';
+            historyDiv.innerHTML = '';
+
             if (!snapshot.exists()) {
-                listDiv.innerHTML = '等待下单...';
+                activeDiv.innerHTML = '等待下单...';
                 return;
             }
+
             const orders = [];
             snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-            orders.reverse().forEach(order => {
-                const card = document.createElement('div');
-                card.className = 'order-card';
-                card.innerHTML = `<span>${order.dish} <small>${order.time}</small></span>`;
-                const doneBtn = document.createElement('button');
-                doneBtn.className = 'done-btn';
-                doneBtn.textContent = '好了';
-                doneBtn.onclick = () => database.ref('orders/' + order.key).remove();
-                card.appendChild(doneBtn);
-                listDiv.appendChild(card);
+            orders.reverse();
+
+            let hasActive = false;
+            let hasHistory = false;
+            orders.forEach(order => {
+                const card = createOrderCard(order.key, order);
+                if (order.status === 'new' || order.status === 'accepted') {
+                    activeDiv.appendChild(card);
+                    hasActive = true;
+                } else {
+                    historyDiv.appendChild(card);
+                    hasHistory = true;
+                }
             });
+
+            if (!hasActive) activeDiv.innerHTML = '🎉 没有待处理的订单';
+            if (!hasHistory) historyDiv.innerHTML = '暂无历史记录';
         });
 
-        database.ref('orders').on('child_added', playSound);
-        document.body.addEventListener('click', () => sound.play().catch(() => {}), { once: true });
+        // 新订单提示音
+        database.ref('orders').on('child_added', data => {
+            if (data.val().status === 'new') playSound();
+        });
+
+        // 历史记录折叠
+        document.getElementById('toggle-history').addEventListener('click', function() {
+            const hist = document.getElementById('history-orders');
+            if (hist.style.display === 'none') {
+                hist.style.display = 'block';
+                this.textContent = '📜 收起历史记录';
+            } else {
+                hist.style.display = 'none';
+                this.textContent = '📜 查看历史记录';
+            }
+        });
+
+        // 首次点击激活声音
+        document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
     </script>
 </body>
 </html>
