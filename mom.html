@@ -13,18 +13,13 @@
         .accept-btn { background: #2196F3; }
         .reject-btn { background: #f44336; }
         .done-btn { background: #4CAF50; }
-        .history-toggle { background: #eee; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 15px; font-size: 16px; cursor: pointer; }
         .time { color: #999; font-size: 14px; }
         audio { display: none; }
     </style>
 </head>
 <body>
     <h2>📋 点菜单</h2>
-    <div id="active-orders">等待下单...</div>
-    
-    <button class="history-toggle" id="toggle-history">📜 查看历史记录</button>
-    <div id="history-orders" style="display:none; margin-top:10px;"></div>
-
+    <div id="order-list">等待下单...</div>
     <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -35,6 +30,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const listDiv = document.getElementById('order-list');
         const sound = document.getElementById('sound');
 
         function playSound() { sound.play().catch(()=>{}); }
@@ -43,9 +39,35 @@
             database.ref('orders/' + key).update({ status: status });
         }
 
-        function createOrderCard(key, order) {
+        // 使用 child_added 添加新订单，child_changed 更新状态，child_removed 移除
+        database.ref('orders').on('child_added', snapshot => {
+            addOrderCard(snapshot.key, snapshot.val());
+            if (snapshot.val().status === 'new') playSound();
+        });
+
+        database.ref('orders').on('child_changed', snapshot => {
+            // 移除旧卡片，重新添加
+            const oldCard = document.getElementById('card-' + snapshot.key);
+            if (oldCard) oldCard.remove();
+            addOrderCard(snapshot.key, snapshot.val());
+        });
+
+        database.ref('orders').on('child_removed', snapshot => {
+            const card = document.getElementById('card-' + snapshot.key);
+            if (card) card.remove();
+            if (!listDiv.hasChildNodes()) {
+                listDiv.innerHTML = '等待下单...';
+            }
+        });
+
+        function addOrderCard(key, order) {
+            // 如果卡片已存在则先移除
+            const existing = document.getElementById('card-' + key);
+            if (existing) existing.remove();
+
             const card = document.createElement('div');
             card.className = 'order-card';
+            card.id = 'card-' + key;
             card.innerHTML = `
                 <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
                 <div class="time">🕒 ${order.time}</div>
@@ -80,58 +102,8 @@
             }
 
             card.appendChild(btnGroup);
-            return card;
+            listDiv.prepend(card);
         }
-
-        // 监听全部订单，自动分区
-        database.ref('orders').on('value', snapshot => {
-            const activeDiv = document.getElementById('active-orders');
-            const historyDiv = document.getElementById('history-orders');
-            activeDiv.innerHTML = '';
-            historyDiv.innerHTML = '';
-
-            if (!snapshot.exists()) {
-                activeDiv.innerHTML = '等待下单...';
-                return;
-            }
-
-            const orders = [];
-            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-            orders.reverse();
-
-            let hasActive = false;
-            let hasHistory = false;
-            orders.forEach(order => {
-                const card = createOrderCard(order.key, order);
-                if (order.status === 'new' || order.status === 'accepted') {
-                    activeDiv.appendChild(card);
-                    hasActive = true;
-                } else {
-                    historyDiv.appendChild(card);
-                    hasHistory = true;
-                }
-            });
-
-            if (!hasActive) activeDiv.innerHTML = '🎉 没有待处理的订单';
-            if (!hasHistory) historyDiv.innerHTML = '暂无历史记录';
-        });
-
-        // 新订单提示音
-        database.ref('orders').on('child_added', data => {
-            if (data.val().status === 'new') playSound();
-        });
-
-        // 历史记录折叠
-        document.getElementById('toggle-history').addEventListener('click', function() {
-            const hist = document.getElementById('history-orders');
-            if (hist.style.display === 'none') {
-                hist.style.display = 'block';
-                this.textContent = '📜 收起历史记录';
-            } else {
-                hist.style.display = 'none';
-                this.textContent = '📜 查看历史记录';
-            }
-        });
 
         // 首次点击激活声音
         document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
