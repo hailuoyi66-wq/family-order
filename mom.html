@@ -48,7 +48,7 @@
         function showNotification(order) {
             if ('Notification' in window && Notification.permission === 'granted') {
                 new Notification('🍽️ 新订单', {
-                    body: order.dish + (order.quantity ? ' ×' + order.quantity : ''),
+                    body: order.dish,
                     icon: 'https://cdn-icons-png.flaticon.com/128/1046/1046784.png',
                     tag: 'new-order'
                 });
@@ -57,9 +57,7 @@
 
         function speakOrder(order) {
             if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(
-                    '新订单，' + order.dish + (order.quantity ? '，' + order.quantity + '份' : '')
-                );
+                const utterance = new SpeechSynthesisUtterance('新订单：' + order.dish);
                 utterance.lang = 'zh-CN';
                 utterance.rate = 1.0;
                 window.speechSynthesis.speak(utterance);
@@ -70,73 +68,83 @@
             database.ref('orders/' + key).update({ status: status });
         }
 
-        database.ref('orders').on('child_added', snapshot => {
-            const order = snapshot.val();
-            addOrderCard(snapshot.key, order);
-            if (order.status === 'new') {
-                playSound();
-                speakOrder(order);
-                showNotification(order);
-            }
-        });
-
-        database.ref('orders').on('child_changed', snapshot => {
-            const oldCard = document.getElementById('card-' + snapshot.key);
-            if (oldCard) oldCard.remove();
-            addOrderCard(snapshot.key, snapshot.val());
-        });
-
-        database.ref('orders').on('child_removed', snapshot => {
-            const card = document.getElementById('card-' + snapshot.key);
-            if (card) card.remove();
-            if (!listDiv.hasChildNodes()) {
+        // 核心：每条订单单独显示，不合并
+        function renderAllOrders(snapshot) {
+            listDiv.innerHTML = '';
+            if (!snapshot.exists()) {
                 listDiv.innerHTML = '等待下单...';
+                return;
             }
+            const orders = [];
+            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+            // 按时间倒序
+            orders.sort((a, b) => b.time.localeCompare(a.time));
+            
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                card.id = 'order-' + order.key;
+                
+                card.innerHTML = `
+                    <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
+                    ${order.note ? `<div class="note">📝 ${order.note}</div>` : ''}
+                    <div class="time">🕒 ${order.time}</div>
+                `;
+                
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group';
+                
+                if (order.status === 'new') {
+                    const acceptBtn = document.createElement('button');
+                    acceptBtn.className = 'action-btn accept-btn';
+                    acceptBtn.textContent = '接单';
+                    acceptBtn.onclick = () => updateOrder(order.key, 'accepted');
+                    
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'action-btn reject-btn';
+                    rejectBtn.textContent = '今天没有';
+                    rejectBtn.onclick = () => updateOrder(order.key, 'rejected');
+                    
+                    btnGroup.appendChild(acceptBtn);
+                    btnGroup.appendChild(rejectBtn);
+                } else if (order.status === 'accepted') {
+                    const doneBtn = document.createElement('button');
+                    doneBtn.className = 'action-btn done-btn';
+                    doneBtn.textContent = '做好了';
+                    doneBtn.onclick = () => updateOrder(order.key, 'done');
+                    btnGroup.appendChild(doneBtn);
+                } else {
+                    const statusText = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
+                    card.innerHTML += `<div style="margin-top:8px;color:#888;">${statusText}</div>`;
+                }
+                
+                card.appendChild(btnGroup);
+                listDiv.appendChild(card);
+            });
+        }
+
+        // 监听数据变化，重新渲染整个列表
+        database.ref('orders').on('value', snapshot => {
+            renderAllOrders(snapshot);
         });
 
-        function addOrderCard(key, order) {
-            const existing = document.getElementById('card-' + key);
-            if (existing) existing.remove();
-
-            const card = document.createElement('div');
-            card.className = 'order-card';
-            card.id = 'card-' + key;
-            card.innerHTML = `
-                <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
-                ${order.note ? `<div class="note">📝 ${order.note}</div>` : ''}
-                <div class="time">🕒 ${order.time}</div>
-            `;
-
-            const btnGroup = document.createElement('div');
-            btnGroup.className = 'btn-group';
-
-            if (order.status === 'new') {
-                const acceptBtn = document.createElement('button');
-                acceptBtn.className = 'action-btn accept-btn';
-                acceptBtn.textContent = '接单';
-                acceptBtn.onclick = () => updateOrder(key, 'accepted');
-                
-                const rejectBtn = document.createElement('button');
-                rejectBtn.className = 'action-btn reject-btn';
-                rejectBtn.textContent = '今天没有';
-                rejectBtn.onclick = () => updateOrder(key, 'rejected');
-                
-                btnGroup.appendChild(acceptBtn);
-                btnGroup.appendChild(rejectBtn);
-            } else if (order.status === 'accepted') {
-                const doneBtn = document.createElement('button');
-                doneBtn.className = 'action-btn done-btn';
-                doneBtn.textContent = '做好了';
-                doneBtn.onclick = () => updateOrder(key, 'done');
-                btnGroup.appendChild(doneBtn);
-            } else {
-                const statusText = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
-                card.innerHTML += `<div style="margin-top:8px;color:#888;">${statusText}</div>`;
+        // 新订单提示
+        let lastOrderCount = 0;
+        database.ref('orders').on('value', snapshot => {
+            const count = snapshot.numChildren();
+            if (count > lastOrderCount) {
+                playSound();
+                // 获取最新订单并播报
+                const orders = [];
+                snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+                if (orders.length > 0) {
+                    const latest = orders[orders.length - 1];
+                    speakOrder(latest);
+                    showNotification(latest);
+                }
             }
-
-            card.appendChild(btnGroup);
-            listDiv.prepend(card);
-        }
+            lastOrderCount = count;
+        });
 
         // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
@@ -162,7 +170,6 @@
             pullRefresh.style.display = 'none';
         });
 
-        // 首次点击激活声音
         document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
     </script>
 </body>
