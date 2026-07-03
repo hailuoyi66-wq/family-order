@@ -3,100 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>我想吃的菜</title>
+    <title>妈妈看单</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 450px; margin: 20px auto; padding: 0 15px; background: #fffaf5; }
         h2 { text-align: center; color: #FF6B35; }
-        .menu-item { background: white; padding: 15px; margin: 12px 0; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        button { background: #FF6B35; color: white; border: none; padding: 10px 18px; border-radius: 20px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 5px; }
-        button:active { background: #e55a2b; }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 25px; border-radius: 30px; display: none; z-index: 999; }
-        .my-order { background: #fff; border-radius: 15px; padding: 15px; margin-top: 20px; }
-        .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; }
-        .status-new { background: #ff9800; }
-        .status-accepted { background: #2196F3; }
-        .status-rejected { background: #f44336; }
-        .status-done { background: #4CAF50; }
+        .order-card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-group { display: flex; gap: 6px; margin-top: 10px; }
+        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; color: white; }
+        .accept-btn { background: #2196F3; }
+        .reject-btn { background: #f44336; }
+        .done-btn { background: #4CAF50; }
+        .time { color: #999; font-size: 14px; }
+        audio { display: none; }
         .pull-refresh { text-align: center; padding: 8px; color: #999; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
-    <h2>🍽️ 想吃啥？</h2>
+    <h2>📋 点菜单</h2>
     <div class="pull-refresh" id="pull-refresh">下拉刷新</div>
-    <div id="menu-container"></div>
-    
-    <div class="my-order">
-        <h3>📋 我的订单</h3>
-        <div id="my-orders">加载中...</div>
-    </div>
-
-    <div id="toast">已下单！</div>
+    <div id="order-list">等待下单...</div>
+    <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
     <script>
         const firebaseConfig = {
             databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const listDiv = document.getElementById('order-list');
+        const sound = document.getElementById('sound');
 
-        // 🔔 把这里换成妈妈给你的 SendKey
-        const SENDKEY = "SCTxxxxxxxxxxxxx";
+        function playSound() { sound.play().catch(()=>{}); }
 
-        const menu = [
-            "红烧排骨", "番茄炒蛋", "酸辣土豆丝", "可乐鸡翅", "玉米炒火腿",
-            "紫菜蛋花汤", "红烧猪脚", "鱼香肉丝", "宫保鸡丁", "回锅肉",
-            "地三鲜", "麻婆豆腐", "青椒肉丝", "蒜蓉西兰花", "干煸豆角"
-        ];
+        // 请求通知权限
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+        requestNotificationPermission();
 
-        function showToast() {
-            const t = document.getElementById('toast');
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2000);
+        // 弹出系统通知（前台/后台都可能显示，取决于系统）
+        function showNotification(order) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🍽️ 新订单', {
+                    body: order.dish + (order.quantity ? ' ×' + order.quantity : ''),
+                    icon: 'https://cdn-icons-png.flaticon.com/128/1046/1046784.png',
+                    tag: 'new-order'
+                });
+            }
         }
 
-        // 🔔 发送微信消息
-        function sendWechatMsg(dish) {
-            if (!SENDKEY || SENDKEY === "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ") return; // 未配置就不发
-            const url = `https://sctapi.ftqq.com/${SENDKEY}.send`;
-            const data = new URLSearchParams({
-                title: '🍽️ 新订单',
-                desp: `**${dish}**\n\n时间：${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
-            });
-            fetch(url, {
-                method: 'POST',
-                body: data
-            }).catch(err => console.log('微信推送失败：', err));
+        // 语音播报（仅前台有效）
+        function speakOrder(order) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(
+                    '新订单，' + order.dish + (order.quantity ? '，' + order.quantity + '份' : '')
+                );
+                utterance.lang = 'zh-CN';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
-        function order(dish) {
-            database.ref('orders').push({
-                dish: dish,
-                time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-                status: 'new'
-            }).then(() => {
-                showToast();
-                sendWechatMsg(dish); // 下单时发微信
-            }).catch(err => {
-                alert('下单失败：' + err.message);
-            });
+        function updateOrder(key, status) {
+            database.ref('orders/' + key).update({ status: status });
         }
 
-        // 生成菜单
-        const container = document.getElementById('menu-container');
-        menu.forEach(dish => {
-            const div = document.createElement('div');
-            div.className = 'menu-item';
-            div.innerHTML = `<span style="font-size:18px;">${dish}</span>`;
-            const btn = document.createElement('button');
-            btn.textContent = '点这个';
-            btn.onclick = () => order(dish);
-            div.appendChild(btn);
-            container.appendChild(div);
+        // 监听新订单
+        database.ref('orders').on('child_added', snapshot => {
+            const order = snapshot.val();
+            addOrderCard(snapshot.key, order);
+            if (order.status === 'new') {
+                playSound();
+                speakOrder(order);
+                showNotification(order);
+            }
         });
+
+        // 监听状态变化
+        database.ref('orders').on('child_changed', snapshot => {
+            const oldCard = document.getElementById('card-' + snapshot.key);
+            if (oldCard) oldCard.remove();
+            addOrderCard(snapshot.key, snapshot.val());
+        });
+
+        // 监听订单删除（如果将来加了删除功能）
+        database.ref('orders').on('child_removed', snapshot => {
+            const card = document.getElementById('card-' + snapshot.key);
+            if (card) card.remove();
+            if (!listDiv.hasChildNodes()) {
+                listDiv.innerHTML = '等待下单...';
+            }
+        });
+
+        function addOrderCard(key, order) {
+            const existing = document.getElementById('card-' + key);
+            if (existing) existing.remove();
+
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.id = 'card-' + key;
+            card.innerHTML = `
+                <div style="font-weight:bold;font-size:18px;">${order.dish}</div>
+                <div class="time">🕒 ${order.time}</div>
+            `;
+
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+
+            if (order.status === 'new') {
+                const acceptBtn = document.createElement('button');
+                acceptBtn.className = 'action-btn accept-btn';
+                acceptBtn.textContent = '接单';
+                acceptBtn.onclick = () => updateOrder(key, 'accepted');
+                
+                const rejectBtn = document.createElement('button');
+                rejectBtn.className = 'action-btn reject-btn';
+                rejectBtn.textContent = '今天没有';
+                rejectBtn.onclick = () => updateOrder(key, 'rejected');
+                
+                btnGroup.appendChild(acceptBtn);
+                btnGroup.appendChild(rejectBtn);
+            } else if (order.status === 'accepted') {
+                const doneBtn = document.createElement('button');
+                doneBtn.className = 'action-btn done-btn';
+                doneBtn.textContent = '做好了';
+                doneBtn.onclick = () => updateOrder(key, 'done');
+                btnGroup.appendChild(doneBtn);
+            } else {
+                const statusText = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
+                card.innerHTML += `<div style="margin-top:8px;color:#888;">${statusText}</div>`;
+            }
+
+            card.appendChild(btnGroup);
+            listDiv.prepend(card);
+        }
 
         // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
@@ -122,67 +166,8 @@
             pullRefresh.style.display = 'none';
         });
 
-        // 订单监听
-        const myOrdersDiv = document.getElementById('my-orders');
-        myOrdersDiv.innerHTML = '暂无订单';
-
-        database.ref('orders').on('child_added', snapshot => {
-            const order = snapshot.val();
-            const div = document.createElement('div');
-            div.className = 'order-item';
-            const statusMap = {
-                new: '⏳ 等待接单',
-                accepted: '👩‍🍳 妈妈已接单',
-                rejected: '❌ 今天没有',
-                done: '✅ 已做好'
-            };
-            const statusText = statusMap[order.status] || order.status;
-            const statusClass = `status-${order.status}`;
-            div.innerHTML = `
-                <div>
-                    <strong>${order.dish}</strong>
-                    <div style="color:#888;font-size:12px;">${order.time}</div>
-                </div>
-                <span class="status-badge ${statusClass}">${statusText}</span>
-            `;
-            myOrdersDiv.prepend(div);
-
-            database.ref('orders/' + snapshot.key).on('child_changed', () => {
-                refreshAllOrders();
-            });
-        });
-
-        function refreshAllOrders() {
-            database.ref('orders').once('value', snapshot => {
-                myOrdersDiv.innerHTML = '';
-                if (!snapshot.exists()) {
-                    myOrdersDiv.innerHTML = '暂无订单';
-                    return;
-                }
-                const orders = [];
-                snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-                orders.reverse().forEach(order => {
-                    const div = document.createElement('div');
-                    div.className = 'order-item';
-                    const statusMap = {
-                        new: '⏳ 等待接单',
-                        accepted: '👩‍🍳 妈妈已接单',
-                        rejected: '❌ 今天没有',
-                        done: '✅ 已做好'
-                    };
-                    const statusText = statusMap[order.status] || order.status;
-                    const statusClass = `status-${order.status}`;
-                    div.innerHTML = `
-                        <div>
-                            <strong>${order.dish}</strong>
-                            <div style="color:#888;font-size:12px;">${order.time}</div>
-                        </div>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    `;
-                    myOrdersDiv.appendChild(div);
-                });
-            });
-        }
+        // 首次点击激活声音
+        document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
     </script>
 </body>
 </html>
