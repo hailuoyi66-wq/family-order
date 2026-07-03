@@ -8,23 +8,38 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #eef5ff; max-width: 450px; margin: 0 auto; padding: 20px 15px; color: #1e293b; }
         h2 { text-align: center; color: #1e40af; font-size: 24px; margin-bottom: 15px; }
-        .order-card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+        .order-card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); transition: all 0.3s; position: relative; overflow: hidden; }
+        .order-card.new-highlight { border: 2px solid #2563EB; animation: pulse 1.5s ease-in-out; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(37,99,235,0); }
+            100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+        }
         .dish-name { font-weight: 700; font-size: 18px; }
         .note { color: #475569; font-size: 14px; margin: 4px 0; }
         .time { color: #94a3b8; font-size: 13px; }
         .btn-group { display: flex; gap: 8px; margin-top: 12px; }
-        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; transition: background 0.2s; }
+        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 20px; font-size: 14px; font-weight: 500; color: white; cursor: pointer; transition: all 0.15s; }
+        .action-btn:active { transform: scale(0.95); }
         .accept-btn { background: #2563EB; }
         .reject-btn { background: #ef4444; }
         .done-btn { background: #10b981; }
-        .pull-refresh { text-align: center; padding: 8px; color: #64748b; font-size: 14px; display: none; }
+        .archive-btn { background: #64748b; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 20px; font-size: 15px; cursor: pointer; transition: all 0.2s; }
+        .archive-btn:active { transform: scale(0.97); background: #475569; }
+        .pull-refresh { text-align: center; padding: 10px; color: #64748b; font-size: 14px; display: none; align-items: center; justify-content: center; gap: 8px; }
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-top: 2px solid #2563EB; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         audio { display: none; }
     </style>
 </head>
 <body>
     <h2>📋 点菜单</h2>
-    <div class="pull-refresh" id="pull-refresh">下拉刷新</div>
+    <div class="pull-refresh" id="pull-refresh">
+        <div class="spinner" id="refresh-spinner"></div>
+        <span id="refresh-text">下拉刷新</span>
+    </div>
     <div id="order-list">等待下单...</div>
+    <button class="archive-btn" id="archive-done">🗃️ 归档已完成/已拒绝</button>
     <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -39,11 +54,7 @@
         const sound = document.getElementById('sound');
 
         function playSound() { sound.play().catch(()=>{}); }
-
-        // 请求通知权限
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 
         function showNotification(order) {
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -59,15 +70,41 @@
             }
         }
 
-        // 更新订单状态
         function updateOrder(key, status) {
-            database.ref('orders/' + key).update({ status: status });
+            database.ref('orders/' + key).update({ status });
         }
 
-        // 根据订单数据生成卡片 DOM
-        function createCard(key, order) {
+        // 归档：移动 done/rejected 到 archived_orders，并删除原节点
+        function archiveCompleted() {
+            const archiveRef = database.ref('archived_orders');
+            database.ref('orders').once('value', snapshot => {
+                const updates = {};
+                const deletions = {};
+                snapshot.forEach(child => {
+                    const order = child.val();
+                    if (order.status === 'done' || order.status === 'rejected') {
+                        const newKey = archiveRef.push().key;
+                        updates['archived_orders/' + newKey] = order;
+                        deletions['orders/' + child.key] = null;
+                    }
+                });
+                if (Object.keys(updates).length === 0) {
+                    alert('没有可归档的订单');
+                    return;
+                }
+                database.ref().update({...updates, ...deletions}).then(() => {
+                    alert('归档成功！');
+                }).catch(err => {
+                    alert('归档失败：' + err.message);
+                });
+            });
+        }
+
+        document.getElementById('archive-done').addEventListener('click', archiveCompleted);
+
+        function createCard(key, order, isNew = false) {
             const card = document.createElement('div');
-            card.className = 'order-card';
+            card.className = 'order-card' + (isNew ? ' new-highlight' : '');
             card.id = 'order-' + key;
             card.innerHTML = `
                 <div class="dish-name">${order.dish}</div>
@@ -114,18 +151,17 @@
         database.ref('orders').on('child_added', snapshot => {
             const key = snapshot.key;
             const order = snapshot.val();
-            const card = createCard(key, order);
+            const card = createCard(key, order, true);
             listDiv.prepend(card);
-
-            // 如果是新订单，提示
             if (order.status === 'new') {
                 playSound();
                 speakOrder(order);
                 showNotification(order);
             }
+            // 新订单卡片高亮几秒后移除
+            setTimeout(() => card.classList.remove('new-highlight'), 2000);
         });
 
-        // 监听订单状态变化
         database.ref('orders').on('child_changed', snapshot => {
             const key = snapshot.key;
             const oldCard = document.getElementById('order-' + key);
@@ -135,33 +171,33 @@
             }
         });
 
-        // 监听订单移除（如果以后加了删除功能）
         database.ref('orders').on('child_removed', snapshot => {
             const card = document.getElementById('order-' + snapshot.key);
             if (card) card.remove();
         });
 
-        // 下拉刷新
+        // 下拉刷新（带动画）
         const pullRefresh = document.getElementById('pull-refresh');
+        const refreshText = document.getElementById('refresh-text');
+        const refreshSpinner = document.getElementById('refresh-spinner');
         let startY = 0;
-        document.addEventListener('touchstart', e => {
-            if (window.scrollY === 0) startY = e.touches[0].clientY;
-        });
+        document.addEventListener('touchstart', e => { if (window.scrollY === 0) startY = e.touches[0].clientY; });
         document.addEventListener('touchmove', e => {
             if (window.scrollY === 0 && e.touches[0].clientY - startY > 50) {
-                pullRefresh.style.display = 'block';
-                pullRefresh.textContent = '释放刷新';
+                pullRefresh.style.display = 'flex';
+                refreshText.textContent = '释放刷新';
             }
         });
         document.addEventListener('touchend', () => {
-            if (pullRefresh.textContent === '释放刷新') {
-                pullRefresh.textContent = '刷新中...';
-                setTimeout(() => window.location.reload(), 300);
+            if (refreshText.textContent === '释放刷新') {
+                refreshText.textContent = '刷新中...';
+                refreshSpinner.style.display = 'block';
+                setTimeout(() => window.location.reload(), 400);
             }
             pullRefresh.style.display = 'none';
+            refreshSpinner.style.display = 'none';
         });
 
-        // 首次点击激活声音
         document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
     </script>
 </body>
