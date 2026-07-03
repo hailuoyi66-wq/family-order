@@ -54,11 +54,14 @@
                 dish: dish,
                 time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
                 status: 'new'
+            }).then(() => {
+                showToast();
+            }).catch(err => {
+                alert('下单失败：' + err.message);
             });
-            showToast();
         }
 
-        // 极简菜单生成
+        // 生成菜单
         const container = document.getElementById('menu-container');
         menu.forEach(dish => {
             const div = document.createElement('div');
@@ -71,38 +74,70 @@
             container.appendChild(div);
         });
 
-        // 实时显示订单及状态
+        // 🔥 核心：用 child_added 逐个添加，绝对可靠
         const myOrdersDiv = document.getElementById('my-orders');
-        database.ref('orders').on('value', snapshot => {
-            myOrdersDiv.innerHTML = '';
-            if (!snapshot.exists()) {
-                myOrdersDiv.innerHTML = '暂无订单';
-                return;
-            }
-            const orders = [];
-            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-            orders.reverse().forEach(order => {
-                const statusMap = {
-                    new: '⏳ 等待接单',
-                    accepted: '👩‍🍳 妈妈已接单',
-                    rejected: '❌ 今天没有',
-                    done: '✅ 已做好'
-                };
-                const statusText = statusMap[order.status] || order.status;
-                const statusClass = `status-${order.status}`;
-                
-                const div = document.createElement('div');
-                div.className = 'order-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>${order.dish}</strong>
-                        <div style="color:#888;font-size:12px;">${order.time}</div>
-                    </div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                `;
-                myOrdersDiv.appendChild(div);
+        myOrdersDiv.innerHTML = '暂无订单'; // 初始
+
+        database.ref('orders').on('child_added', snapshot => {
+            const order = snapshot.val();
+            // 显示订单
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            const statusMap = {
+                new: '⏳ 等待接单',
+                accepted: '👩‍🍳 妈妈已接单',
+                rejected: '❌ 今天没有',
+                done: '✅ 已做好'
+            };
+            const statusText = statusMap[order.status] || order.status;
+            const statusClass = `status-${order.status}`;
+            div.innerHTML = `
+                <div>
+                    <strong>${order.dish}</strong>
+                    <div style="color:#888;font-size:12px;">${order.time}</div>
+                </div>
+                <span class="status-badge ${statusClass}">${statusText}</span>
+            `;
+            myOrdersDiv.prepend(div);
+            // 同时更新状态
+            database.ref('orders/' + snapshot.key).on('child_changed', changed => {
+                // 简单处理：重新更新整个订单列表（也可优化，但稳定第一）
+                refreshAllOrders();
             });
         });
+
+        // 刷新所有订单显示（当状态改变时调用）
+        function refreshAllOrders() {
+            database.ref('orders').once('value', snapshot => {
+                myOrdersDiv.innerHTML = '';
+                if (!snapshot.exists()) {
+                    myOrdersDiv.innerHTML = '暂无订单';
+                    return;
+                }
+                const orders = [];
+                snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+                orders.reverse().forEach(order => {
+                    const div = document.createElement('div');
+                    div.className = 'order-item';
+                    const statusMap = {
+                        new: '⏳ 等待接单',
+                        accepted: '👩‍🍳 妈妈已接单',
+                        rejected: '❌ 今天没有',
+                        done: '✅ 已做好'
+                    };
+                    const statusText = statusMap[order.status] || order.status;
+                    const statusClass = `status-${order.status}`;
+                    div.innerHTML = `
+                        <div>
+                            <strong>${order.dish}</strong>
+                            <div style="color:#888;font-size:12px;">${order.time}</div>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    `;
+                    myOrdersDiv.appendChild(div);
+                });
+            });
+        }
     </script>
 </body>
 </html>
