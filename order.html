@@ -136,10 +136,8 @@
         <span id="refresh-text">下拉刷新</span>
     </div>
 
-    <!-- 动态菜品区（按分类渲染） -->
     <div id="menu-container"></div>
 
-    <!-- 自定义菜品区（永久保存） -->
     <div class="card">
         <div class="custom-header">✏️ 添加自定义菜品到菜单</div>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
@@ -187,7 +185,6 @@
     const database = firebase.database();
     const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
-    // ========== 菜品分类数据 ==========
     const menuCategories = {
         meat: { title: "🥩 荤菜", items: [
             { name: "红烧排骨", emoji: "🍖" },
@@ -212,16 +209,14 @@
         ]}
     };
 
-    // 所有菜品（含自定义）的本地数据 { name: { qty, note } }
     const menuData = {};
-    // 初始化默认菜单的数据
+    // 初始化默认菜品的数据
     for (let cat in menuCategories) {
         menuCategories[cat].items.forEach(dish => {
             menuData[dish.name] = { qty: 0, note: '' };
         });
     }
 
-    // ========== 工具函数 ==========
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.textContent = msg || '';
@@ -248,25 +243,7 @@
         });
     }
 
-    // ========== 渲染菜单（按分类） ==========
-    const menuContainer = document.getElementById('menu-container');
-    function renderAllMenu() {
-        menuContainer.innerHTML = '';
-        for (let cat in menuCategories) {
-            const category = menuCategories[cat];
-            // 分类标题
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'category-title';
-            titleDiv.textContent = category.title;
-            menuContainer.appendChild(titleDiv);
-
-            category.items.forEach(dish => {
-                const card = createDishCard(dish);
-                menuContainer.appendChild(card);
-            });
-        }
-    }
-
+    // ---------- 核心修复：创建菜品卡片时读取保存的数量 ----------
     function createDishCard(dish) {
         const card = document.createElement('div');
         card.className = 'card';
@@ -286,42 +263,63 @@
         const numSpan = card.querySelector('.qty-num');
         const noteInput = card.querySelector('.note-input');
 
+        // ✅ 从 menuData 读取已保存的数量，并显示
+        if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
+        const savedQty = menuData[dish.name].qty;
+        numSpan.textContent = savedQty;
+
+        // 同步备注
+        noteInput.value = menuData[dish.name].note || '';
+
         minusBtn.onclick = () => {
-            if (menuData[dish.name] && menuData[dish.name].qty > 0) {
+            if (menuData[dish.name].qty > 0) {
                 menuData[dish.name].qty--;
                 numSpan.textContent = menuData[dish.name].qty;
             }
         };
         plusBtn.onclick = () => {
-            if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
             menuData[dish.name].qty++;
             numSpan.textContent = menuData[dish.name].qty;
         };
         numSpan.addEventListener('click', (e) => {
             e.stopPropagation();
-            const cur = menuData[dish.name] ? menuData[dish.name].qty : 0;
+            const cur = menuData[dish.name].qty;
             const newQty = prompt(`输入 ${dish.name} 的数量`, cur);
             if (newQty !== null) {
                 const num = parseInt(newQty);
                 if (!isNaN(num) && num >= 0) {
-                    if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
                     menuData[dish.name].qty = num;
                     numSpan.textContent = num;
                 }
             }
         });
         noteInput.oninput = (e) => {
-            if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
             menuData[dish.name].note = e.target.value.trim();
         };
         return card;
     }
 
-    // ========== 自定义菜品（永久存储到 custom_menu） ==========
+    const menuContainer = document.getElementById('menu-container');
+    function renderAllMenu() {
+        menuContainer.innerHTML = '';
+        for (let cat in menuCategories) {
+            const category = menuCategories[cat];
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'category-title';
+            titleDiv.textContent = category.title;
+            menuContainer.appendChild(titleDiv);
+
+            category.items.forEach(dish => {
+                menuContainer.appendChild(createDishCard(dish));
+            });
+        }
+    }
+
+    // 加载自定义菜单
     function loadCustomMenu() {
         database.ref('custom_menu').once('value', snapshot => {
             const customItems = snapshot.val() || [];
-            // 清空原有自定义项，重新装入对应分类
+            // 清除之前的自定义项
             for (let cat in menuCategories) {
                 menuCategories[cat].items = menuCategories[cat].items.filter(d => !d.isCustom);
             }
@@ -334,7 +332,7 @@
                         isCustom: true,
                         id: item.id
                     });
-                    // 初始化 menuData
+                    // 初始化数据
                     if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
                 }
             });
@@ -368,7 +366,7 @@
         nameInput.value = '';
     });
 
-    // ========== 下单逻辑 ==========
+    // 下单逻辑
     function collectSelectedItems() {
         const items = [];
         for (let cat in menuCategories) {
@@ -406,14 +404,15 @@
         return Promise.all(promises).then(() => {
             showToast('已下单，微信已提醒妈妈');
             sendWechatMsg(summary);
-            // 重置本地数据
+            // 重置数量
             for (let key in menuData) {
                 menuData[key].qty = 0;
                 menuData[key].note = '';
             }
+            // 更新DOM显示
             document.querySelectorAll('.qty-num').forEach(sp => sp.textContent = '0');
             document.querySelectorAll('.note-input').forEach(inp => inp.value = '');
-            // 强制刷新订单列表
+            // 刷新订单列表
             database.ref('orders').once('value', snapshot => renderOrderList(snapshot));
         });
     }
@@ -435,7 +434,7 @@
         if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
     });
 
-    // ========== 下拉刷新 ==========
+    // 下拉刷新
     const pullRefresh = document.getElementById('pull-refresh');
     const refreshText = document.getElementById('refresh-text');
     const refreshSpinner = document.getElementById('refresh-spinner');
@@ -454,7 +453,7 @@
         pullRefresh.style.display = 'none'; refreshSpinner.style.display = 'none';
     });
 
-    // ========== 订单渲染 ==========
+    // 订单渲染
     const orderListDiv = document.getElementById('order-list');
     let showOnlyActive = false;
 
@@ -495,7 +494,6 @@
         database.ref('orders').once('value', snapshot => renderOrderList(snapshot));
     });
 
-    // A端归档（移动数据，B端独立不受影响）
     document.getElementById('archive-done').addEventListener('click', () => {
         const archiveRef = database.ref('archived_orders');
         database.ref('orders').once('value', snapshot => {
@@ -512,7 +510,7 @@
         });
     });
 
-    // 页面初始化
+    // 初始化加载
     loadCustomMenu();
 </script>
 </body>
