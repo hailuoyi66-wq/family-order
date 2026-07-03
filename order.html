@@ -43,6 +43,8 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .history-toggle { background: #f1f5f9; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 15px; font-size: 15px; cursor: pointer; color: #475569; transition: background 0.2s; }
         .history-toggle:active { background: #e2e8f0; }
+        .archive-btn { background: #64748b; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .archive-btn:active { transform: scale(0.97); background: #475569; }
     </style>
 </head>
 <body>
@@ -53,7 +55,6 @@
     </div>
     <div id="menu-container"></div>
 
-    <!-- 自定义菜区域 -->
     <div class="card">
         <div class="custom-header">✏️ 自定义菜品</div>
         <div style="display:flex; gap:8px;">
@@ -63,16 +64,16 @@
         <div id="custom-list"></div>
     </div>
 
-    <!-- 一键下单 -->
     <button class="btn-submit" id="submit-all">🚀 一键下单</button>
 
-    <!-- 我的订单 -->
     <div class="order-section">
         <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 进行中</h3>
         <div id="active-orders">暂无进行中的订单</div>
 
         <button class="history-toggle" id="toggle-history">📜 查看历史记录</button>
         <div id="history-orders" style="display:none; margin-top:10px;"></div>
+        
+        <button class="archive-btn" id="archive-done">🗃️ 归档已完成/已拒绝</button>
     </div>
 
     <div id="toast"></div>
@@ -156,7 +157,6 @@
                 menuData[dish].qty++;
                 numSpan.textContent = menuData[dish].qty;
             };
-            // 点击数字可手动输入
             numSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const newQty = prompt(`输入 ${dish} 的数量`, menuData[dish].qty);
@@ -267,7 +267,7 @@
             }).catch(err => showToast('下单失败: ' + err.message));
         });
 
-        // 下拉刷新（带旋转动画）
+        // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
         const refreshText = document.getElementById('refresh-text');
         const refreshSpinner = document.getElementById('refresh-spinner');
@@ -279,7 +279,7 @@
                 refreshText.textContent = '释放刷新';
             }
         });
-        document.addEventListener('touchend', e => {
+        document.addEventListener('touchend', () => {
             if (refreshText.textContent === '释放刷新') {
                 refreshText.textContent = '刷新中...';
                 refreshSpinner.style.display = 'block';
@@ -289,49 +289,92 @@
             refreshSpinner.style.display = 'none';
         });
 
-        // 实时订单区拆分
+        // 🔥 核心修复：用 child_added 逐条添加，彻底解决多份只显示一条的问题
         const activeDiv = document.getElementById('active-orders');
         const historyDiv = document.getElementById('history-orders');
 
-        function renderOrders(snapshot) {
-            activeDiv.innerHTML = '';
-            historyDiv.innerHTML = '';
-            if (!snapshot.exists()) {
-                activeDiv.innerHTML = '暂无进行中的订单';
-                historyDiv.innerHTML = '暂无历史记录';
-                return;
-            }
-            const orders = [];
-            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-            orders.sort((a, b) => b.time.localeCompare(a.time));
-
-            let hasActive = false, hasHistory = false;
-            orders.forEach(order => {
-                const div = document.createElement('div');
-                div.className = 'order-item';
-                const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
-                const status = statusMap[order.status] || order.status;
-                div.innerHTML = `
-                    <div class="order-detail">
-                        <strong>${order.dish}</strong>
-                        ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
-                        <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
-                    </div>
-                    <span class="status-badge status-${order.status}">${status}</span>
-                `;
-                if (order.status === 'new' || order.status === 'accepted') {
-                    activeDiv.appendChild(div);
-                    hasActive = true;
-                } else {
-                    historyDiv.appendChild(div);
-                    hasHistory = true;
-                }
-            });
-            if (!hasActive) activeDiv.innerHTML = '暂无进行中的订单';
-            if (!hasHistory) historyDiv.innerHTML = '暂无历史记录';
+        function createOrderCard(key, order) {
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            div.id = 'order-' + key;
+            const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
+            const status = statusMap[order.status] || order.status;
+            div.innerHTML = `
+                <div class="order-detail">
+                    <strong>${order.dish}</strong>
+                    ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
+                    <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
+                </div>
+                <span class="status-badge status-${order.status}">${status}</span>
+            `;
+            return div;
         }
 
-        database.ref('orders').on('value', snapshot => renderOrders(snapshot));
+        function placeCard(key, order) {
+            const card = createOrderCard(key, order);
+            if (order.status === 'new' || order.status === 'accepted') {
+                activeDiv.prepend(card);
+                // 移除“暂无”占位文字
+                if (activeDiv.querySelector('p')) activeDiv.innerHTML = '';
+            } else {
+                historyDiv.prepend(card);
+                if (historyDiv.querySelector('p')) historyDiv.innerHTML = '';
+            }
+        }
+
+        // 监听新增
+        database.ref('orders').on('child_added', snapshot => {
+            placeCard(snapshot.key, snapshot.val());
+        });
+
+        // 监听状态变化
+        database.ref('orders').on('child_changed', snapshot => {
+            const key = snapshot.key;
+            const oldCard = document.getElementById('order-' + key);
+            if (oldCard) {
+                const newCard = createOrderCard(key, snapshot.val());
+                oldCard.replaceWith(newCard);
+                // 重新调整位置：如果状态变了，挪到对应区域
+                const order = snapshot.val();
+                const currentCard = document.getElementById('order-' + key);
+                if (currentCard) {
+                    currentCard.remove();
+                    placeCard(key, order);
+                }
+            }
+        });
+
+        // 监听删除
+        database.ref('orders').on('child_removed', snapshot => {
+            const card = document.getElementById('order-' + snapshot.key);
+            if (card) card.remove();
+        });
+
+        // 归档功能（和B端一致）
+        document.getElementById('archive-done').addEventListener('click', () => {
+            const archiveRef = database.ref('archived_orders');
+            database.ref('orders').once('value', snapshot => {
+                const updates = {};
+                const deletions = {};
+                snapshot.forEach(child => {
+                    const order = child.val();
+                    if (order.status === 'done' || order.status === 'rejected') {
+                        const newKey = archiveRef.push().key;
+                        updates['archived_orders/' + newKey] = order;
+                        deletions['orders/' + child.key] = null;
+                    }
+                });
+                if (Object.keys(updates).length === 0) {
+                    showToast('没有可归档的订单');
+                    return;
+                }
+                database.ref().update({...updates, ...deletions}).then(() => {
+                    showToast('归档成功！');
+                }).catch(err => {
+                    showToast('归档失败：' + err.message);
+                });
+            });
+        });
 
         // 历史记录折叠
         document.getElementById('toggle-history').addEventListener('click', function() {
