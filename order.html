@@ -14,15 +14,14 @@
             --text: #1e293b;
             --text-secondary: #64748b;
             --border: #e2e8f0;
-            --shadow: 0 8px 30px rgba(0,0,0,0.05);
-            --shadow-lg: 0 15px 40px rgba(37,99,235,0.15);
+            --shadow: 0 8px 30px rgba(0,0,0,0.04);
             --radius: 20px;
             --radius-sm: 12px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #eef2ff 0%, #dbe9ff 100%);
+            background: linear-gradient(145deg, #eef2ff 0%, #e0eaff 100%);
             min-height: 100vh;
             padding: 20px 16px 40px;
             color: var(--text);
@@ -30,10 +29,9 @@
         }
         .container { max-width: 450px; margin: 0 auto; }
 
-        /* 头部 */
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .header h1 {
             font-size: 28px;
@@ -42,6 +40,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            margin-bottom: 4px;
         }
 
         /* 卡片 */
@@ -53,12 +52,11 @@
             padding: 18px;
             margin-bottom: 14px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(255,255,255,0.6);
-            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.7);
+            transition: transform 0.15s, box-shadow 0.15s;
         }
-        .card:active { transform: scale(0.99); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .card:active { transform: scale(0.99); }
 
-        /* 菜品行 */
         .menu-row {
             display: flex;
             align-items: center;
@@ -68,14 +66,12 @@
         .menu-name {
             font-size: 17px;
             font-weight: 600;
-            color: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .emoji-icon { font-size: 24px; }
 
-        /* 数量控件 */
         .qty-control { display: flex; align-items: center; gap: 6px; }
         .qty-btn {
             background: #f1f5f9;
@@ -90,7 +86,6 @@
             color: #334155;
             cursor: pointer;
             transition: all 0.15s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
         .qty-btn:active { transform: scale(0.9); background: #cbd5e1; }
         .qty-num {
@@ -104,20 +99,17 @@
             background: #f8fafc;
         }
 
-        /* 输入框 */
         .note-input {
             width: 100%;
             padding: 10px 14px;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             font-size: 14px;
-            background: rgba(255,255,255,0.7);
-            backdrop-filter: blur(5px);
+            background: rgba(255,255,255,0.6);
             transition: border 0.2s;
         }
-        .note-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .note-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
 
-        /* 自定义区域 */
         .custom-header { font-weight: 600; margin-bottom: 12px; color: #1e40af; font-size: 16px; }
         .custom-row {
             display: flex;
@@ -135,7 +127,6 @@
             background: rgba(255,255,255,0.7);
         }
 
-        /* 按钮 */
         .btn {
             border: none;
             border-radius: 30px;
@@ -150,7 +141,7 @@
             gap: 6px;
         }
         .btn:active { transform: scale(0.96); }
-        .btn-primary { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(37,99,235,0.3); }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 6px 15px rgba(37,99,235,0.25); }
         .btn-primary:active { background: var(--primary-dark); }
         .btn-danger { background: #fee2e2; color: #b91c1c; }
         .btn-submit {
@@ -163,19 +154,18 @@
             border: none;
             border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(37,99,235,0.4);
+            box-shadow: 0 12px 30px rgba(37,99,235,0.35);
             transition: all 0.2s;
-            margin: 20px 0;
+            margin: 20px 0 24px;
         }
-        .btn-submit:active { transform: scale(0.97); box-shadow: 0 6px 20px rgba(37,99,235,0.3); }
+        .btn-submit:active { transform: scale(0.97); box-shadow: 0 6px 18px rgba(37,99,235,0.2); }
 
-        /* Toast */
         #toast {
             position: fixed;
             top: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(30,41,59,0.9);
+            background: rgba(30,41,59,0.85);
             backdrop-filter: blur(10px);
             color: white;
             padding: 12px 28px;
@@ -183,11 +173,11 @@
             font-size: 14px;
             display: none;
             z-index: 9999;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
 
-        /* 订单区 */
-        .order-section { margin-top: 20px; }
+        /* 订单列表 */
+        .order-section { margin-top: 24px; }
         .order-item {
             background: rgba(255,255,255,0.9);
             backdrop-filter: blur(10px);
@@ -197,9 +187,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+            border-left: 4px solid #cbd5e1;
+            transition: all 0.2s;
         }
+        .order-item.status-new { border-left-color: #f59e0b; background: #fffdf5; }
+        .order-item.status-accepted { border-left-color: #2563eb; background: #f5f9ff; }
+        .order-item.status-rejected { border-left-color: #ef4444; background: #fff5f5; }
+        .order-item.status-done { border-left-color: #10b981; background: #f5fff9; }
+
         .order-detail { flex: 1; }
         .status-badge {
             padding: 6px 12px;
@@ -207,18 +203,39 @@
             font-size: 12px;
             font-weight: 600;
             color: white;
+            margin-left: 10px;
+            white-space: nowrap;
         }
-        .status-new { background: #f59e0b; }
-        .status-accepted { background: #2563eb; }
-        .status-rejected { background: #ef4444; }
-        .status-done { background: #10b981; }
+        .status-new .status-badge { background: #f59e0b; }
+        .status-accepted .status-badge { background: #2563eb; }
+        .status-rejected .status-badge { background: #ef4444; }
+        .status-done .status-badge { background: #10b981; }
 
-        /* 弹窗 */
+        .history-toggle, .archive-btn {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.8);
+            padding: 12px;
+            width: 100%;
+            border-radius: 14px;
+            margin-top: 12px;
+            font-size: 15px;
+            cursor: pointer;
+            color: #475569;
+            font-weight: 500;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .history-toggle:active, .archive-btn:active { background: rgba(255,255,255,0.8); }
+
+        /* 确认弹窗 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
@@ -235,7 +252,7 @@
             padding: 24px;
             width: 85%;
             max-width: 380px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25);
             transform: translateY(20px);
             transition: transform 0.3s;
         }
@@ -253,19 +270,6 @@
         .pull-refresh { text-align: center; padding: 10px; color: #64748b; font-size: 14px; display: none; align-items: center; justify-content: center; gap: 8px; }
         .spinner { display: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-top: 2px solid #2563eb; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .history-toggle, .archive-btn {
-            background: rgba(255,255,255,0.6);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.8);
-            padding: 12px;
-            width: 100%;
-            border-radius: 16px;
-            margin-top: 12px;
-            font-size: 15px;
-            cursor: pointer;
-            color: #475569;
-            font-weight: 500;
-        }
     </style>
 </head>
 <body>
@@ -281,7 +285,6 @@
 
     <div id="menu-container"></div>
 
-    <!-- 自定义菜 -->
     <div class="card">
         <div class="custom-header">✏️ 自定义菜品</div>
         <div style="display:flex; gap:8px;">
@@ -293,22 +296,17 @@
 
     <button class="btn-submit" id="submit-all">🚀 一键下单</button>
 
-    <!-- 订单区域 -->
     <div class="order-section">
-        <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 进行中</h3>
-        <div id="active-orders">暂无进行中的订单</div>
+        <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 我的订单</h3>
+        <div id="order-list">暂无订单</div>
 
-        <button class="history-toggle" id="toggle-history">📜 查看历史记录</button>
-        <div id="history-orders" style="display:none; margin-top:10px;"></div>
-        
+        <button class="history-toggle" id="toggle-history">📜 只显示进行中</button>
         <button class="archive-btn" id="archive-done">🗃️ 归档已完成/已拒绝</button>
     </div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- 确认弹窗 -->
 <div class="modal-overlay" id="confirm-modal">
     <div class="modal">
         <h3>确认下单</h3>
@@ -330,7 +328,6 @@
     const database = firebase.database();
     const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
-    // 菜单数据（带表情）
     const menu = [
         { name: "红烧排骨", emoji: "🍖" },
         { name: "番茄炒蛋", emoji: "🍅" },
@@ -458,76 +455,54 @@
             const noteInput = row.querySelector('.note-input');
             const deleteBtn = row.querySelector('.cust-delete');
 
-            minusBtn.onclick = () => {
-                if (cd.qty > 0) { cd.qty--; numSpan.textContent = cd.qty; }
-            };
+            minusBtn.onclick = () => { if (cd.qty > 0) { cd.qty--; numSpan.textContent = cd.qty; } };
             plusBtn.onclick = () => { cd.qty++; numSpan.textContent = cd.qty; };
             numSpan.addEventListener('click', () => {
                 const newQty = prompt(`输入 ${cd.name} 的数量`, cd.qty);
                 if (newQty !== null) {
                     const num = parseInt(newQty);
-                    if (!isNaN(num) && num >= 0) {
-                        cd.qty = num;
-                        numSpan.textContent = num;
-                    }
+                    if (!isNaN(num) && num >= 0) { cd.qty = num; numSpan.textContent = num; }
                 }
             });
             noteInput.oninput = (e) => { cd.note = e.target.value.trim(); };
-            deleteBtn.onclick = () => {
-                customDishes.splice(index, 1);
-                renderCustomList();
-            };
+            deleteBtn.onclick = () => { customDishes.splice(index, 1); renderCustomList(); };
             listDiv.appendChild(row);
         });
     }
 
-    // 收集当前选中的菜品汇总（用于弹窗展示和实际下单）
+    // 收集选中的菜
     function collectSelectedItems() {
         const items = [];
         menu.forEach(dish => {
             const { qty, note } = menuData[dish.name];
             if (qty > 0) items.push({ name: dish.name, qty, note });
         });
-        customDishes.forEach(cd => {
-            if (cd.qty > 0) items.push({ name: cd.name, qty: cd.qty, note: cd.note });
-        });
+        customDishes.forEach(cd => { if (cd.qty > 0) items.push({ name: cd.name, qty: cd.qty, note: cd.note }); });
         return items;
     }
 
-    // 显示确认弹窗
     function showConfirmModal(items) {
         const contentDiv = document.getElementById('modal-content');
         contentDiv.innerHTML = '';
-        if (items.length === 0) {
-            contentDiv.innerHTML = '<p style="color:#64748b; text-align:center; padding:20px;">没有选中的菜品</p>';
-            return;
-        }
         items.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'modal-item';
-            itemDiv.innerHTML = `
-                <span><strong>${item.name}</strong> ×${item.qty}</span>
-                <span style="color:#64748b; font-size:14px;">${item.note || ''}</span>
-            `;
-            contentDiv.appendChild(itemDiv);
+            const div = document.createElement('div');
+            div.className = 'modal-item';
+            div.innerHTML = `<span><strong>${item.name}</strong> ×${item.qty}</span><span style="color:#64748b;font-size:14px;">${item.note || ''}</span>`;
+            contentDiv.appendChild(div);
         });
         document.getElementById('confirm-modal').classList.add('active');
     }
 
-    // 实际执行下单
     function executeOrder(items) {
         const promises = [];
         const summary = [];
         items.forEach(item => {
             summary.push(item.name + ' ×' + item.qty + (item.note ? ' (备注: ' + item.note + ')' : ''));
-            for (let i = 0; i < item.qty; i++) {
-                promises.push(pushOrder(item.name, item.note));
-            }
+            for (let i = 0; i < item.qty; i++) promises.push(pushOrder(item.name, item.note));
         });
         return Promise.all(promises).then(() => {
             showToast('已下单，微信已提醒妈妈');
             sendWechatMsg(summary);
-            // 重置
             menu.forEach(d => { menuData[d.name].qty = 0; menuData[d.name].note = ''; });
             customDishes.length = 0;
             document.getElementById('custom-list').innerHTML = '';
@@ -536,33 +511,21 @@
         });
     }
 
-    // 一键下单按钮 -> 弹出确认弹窗
     document.getElementById('submit-all').addEventListener('click', () => {
         const items = collectSelectedItems();
-        if (items.length === 0) {
-            showToast('请至少选一道菜！');
-            return;
-        }
+        if (items.length === 0) { showToast('请至少选一道菜！'); return; }
         showConfirmModal(items);
     });
 
-    // 弹窗取消按钮
     document.getElementById('modal-cancel').addEventListener('click', () => {
         document.getElementById('confirm-modal').classList.remove('active');
     });
-
-    // 弹窗确认按钮
     document.getElementById('modal-confirm').addEventListener('click', () => {
         document.getElementById('confirm-modal').classList.remove('active');
-        const items = collectSelectedItems();
-        executeOrder(items).catch(err => showToast('下单失败: ' + err.message));
+        executeOrder(collectSelectedItems()).catch(err => showToast('下单失败: ' + err.message));
     });
-
-    // 点击遮罩关闭
     document.getElementById('confirm-modal').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) {
-            e.currentTarget.classList.remove('active');
-        }
+        if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
     });
 
     // 下拉刷新
@@ -573,60 +536,68 @@
     document.addEventListener('touchstart', e => { if (window.scrollY === 0) startY = e.touches[0].clientY; });
     document.addEventListener('touchmove', e => {
         if (window.scrollY === 0 && e.touches[0].clientY - startY > 50) {
-            pullRefresh.style.display = 'flex';
-            refreshText.textContent = '释放刷新';
+            pullRefresh.style.display = 'flex'; refreshText.textContent = '释放刷新';
         }
     });
     document.addEventListener('touchend', () => {
         if (refreshText.textContent === '释放刷新') {
-            refreshText.textContent = '刷新中...';
-            refreshSpinner.style.display = 'block';
+            refreshText.textContent = '刷新中...'; refreshSpinner.style.display = 'block';
             setTimeout(() => window.location.reload(), 400);
         }
-        pullRefresh.style.display = 'none';
-        refreshSpinner.style.display = 'none';
+        pullRefresh.style.display = 'none'; refreshSpinner.style.display = 'none';
     });
 
-    // 订单区渲染
-    const activeDiv = document.getElementById('active-orders');
-    const historyDiv = document.getElementById('history-orders');
+    // ---------- 订单渲染：单列表，绝对稳定 ----------
+    const orderListDiv = document.getElementById('order-list');
+    let showOnlyActive = false; // 默认显示全部
+
     function renderAllOrders(snapshot) {
-        activeDiv.innerHTML = '';
-        historyDiv.innerHTML = '';
+        orderListDiv.innerHTML = '';
         if (!snapshot.exists()) {
-            activeDiv.textContent = '暂无进行中的订单';
-            historyDiv.textContent = '暂无历史记录';
+            orderListDiv.textContent = '暂无订单';
             return;
         }
         const orders = [];
         snapshot.forEach(child => orders.push({ id: child.key, ...child.val() }));
         orders.sort((a, b) => b.time.localeCompare(a.time));
-        let hasActive = false, hasHistory = false;
+
+        let hasAny = false;
         orders.forEach(order => {
+            // 过滤：如果只显示进行中，则跳过 done/rejected
+            if (showOnlyActive && (order.status === 'done' || order.status === 'rejected')) return;
+
             const div = document.createElement('div');
-            div.className = 'order-item';
-            const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
-            const statusText = statusMap[order.status] || order.status;
+            div.className = 'order-item status-' + order.status;
+            const statusMap = {
+                new: '⏳ 等待接单',
+                accepted: '👩‍🍳 已接单',
+                rejected: '❌ 没有',
+                done: '✅ 已做好'
+            };
             div.innerHTML = `
                 <div class="order-detail">
                     <strong>${order.dish}</strong>
                     ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
                     <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
                 </div>
-                <span class="status-badge status-${order.status}">${statusText}</span>
+                <span class="status-badge">${statusMap[order.status] || order.status}</span>
             `;
-            if (order.status === 'new' || order.status === 'accepted') {
-                activeDiv.appendChild(div);
-                hasActive = true;
-            } else {
-                historyDiv.appendChild(div);
-                hasHistory = true;
-            }
+            orderListDiv.appendChild(div);
+            hasAny = true;
         });
-        if (!hasActive) activeDiv.textContent = '暂无进行中的订单';
-        if (!hasHistory) historyDiv.textContent = '暂无历史记录';
+        if (!hasAny) orderListDiv.textContent = '暂无符合条件的订单';
     }
+
     database.ref('orders').on('value', snapshot => renderAllOrders(snapshot));
+
+    // 切换显示：仅进行中 / 全部
+    const toggleBtn = document.getElementById('toggle-history');
+    toggleBtn.addEventListener('click', () => {
+        showOnlyActive = !showOnlyActive;
+        toggleBtn.textContent = showOnlyActive ? '📋 显示全部订单' : '📜 只显示进行中';
+        // 重新渲染一遍
+        database.ref('orders').once('value', snapshot => renderAllOrders(snapshot));
+    });
 
     // 归档
     document.getElementById('archive-done').addEventListener('click', () => {
@@ -643,18 +614,6 @@
             if (Object.keys(updates).length === 0) { showToast('没有可归档的订单'); return; }
             database.ref().update({...updates, ...deletions}).then(() => showToast('归档成功！')).catch(err => showToast('归档失败: ' + err.message));
         });
-    });
-
-    // 历史折叠
-    document.getElementById('toggle-history').addEventListener('click', function() {
-        const hist = document.getElementById('history-orders');
-        if (hist.style.display === 'none') {
-            hist.style.display = 'block';
-            this.textContent = '📜 收起历史记录';
-        } else {
-            hist.style.display = 'none';
-            this.textContent = '📜 查看历史记录';
-        }
     });
 </script>
 </body>
