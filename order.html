@@ -43,7 +43,6 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 🔔 已配置微信推送 SendKey（你的真实 key）
         const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
         const menu = [
@@ -52,28 +51,36 @@
             "地三鲜", "麻婆豆腐", "青椒肉丝", "蒜蓉西兰花", "干煸豆角"
         ];
 
-        function showToast() {
+        function showToast(msg) {
             const t = document.getElementById('toast');
+            t.textContent = msg || '已下单！';
             t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2000);
+            setTimeout(() => t.style.display = 'none', 2500);
         }
 
-        // 发送微信消息
+        // 使用 XMLHttpRequest 发送，更稳定
         function sendWechatMsg(dish) {
             if (!SENDKEY || SENDKEY === "SCTxxxxxxxxxxxxx") return;
-            const url = `https://sctapi.ftqq.com/${SENDKEY}.send`;
-            const data = new URLSearchParams({
-                title: '🍽️ 新订单',
-                desp: `**${dish}**\n\n时间：${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
-            });
-            fetch(url, { method: 'POST', body: data })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.code !== 0) {
-                        console.log('微信推送失败：', result);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://sctapi.ftqq.com/' + SENDKEY + '.send', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    try {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.code === 0) {
+                            showToast('已下单，微信已提醒妈妈');
+                        } else {
+                            showToast('下单成功，但微信推送失败：' + (result.message || '未知错误'));
+                        }
+                    } catch (e) {
+                        showToast('下单成功，但微信推送异常');
                     }
-                })
-                .catch(err => console.log('微信推送请求出错：', err));
+                }
+            };
+            var data = 'title=' + encodeURIComponent('🍽️ 新订单') +
+                       '&desp=' + encodeURIComponent('**' + dish + '**\n\n时间：' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+            xhr.send(data);
         }
 
         function order(dish) {
@@ -82,10 +89,10 @@
                 time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
                 status: 'new'
             }).then(() => {
-                showToast();
-                sendWechatMsg(dish); // 下单时自动发微信
+                showToast('已下单，正在通知妈妈...');
+                sendWechatMsg(dish);
             }).catch(err => {
-                alert('下单失败：' + err.message);
+                showToast('下单失败：' + err.message);
             });
         }
 
