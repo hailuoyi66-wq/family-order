@@ -289,68 +289,55 @@
             refreshSpinner.style.display = 'none';
         });
 
-        // 🔥 核心修复：用 child_added 逐条添加，彻底解决多份只显示一条的问题
+        // 订单监听（全量刷新，每条单独生成，避免合并）
         const activeDiv = document.getElementById('active-orders');
         const historyDiv = document.getElementById('history-orders');
 
-        function createOrderCard(key, order) {
-            const div = document.createElement('div');
-            div.className = 'order-item';
-            div.id = 'order-' + key;
-            const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
-            const status = statusMap[order.status] || order.status;
-            div.innerHTML = `
-                <div class="order-detail">
-                    <strong>${order.dish}</strong>
-                    ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
-                    <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
-                </div>
-                <span class="status-badge status-${order.status}">${status}</span>
-            `;
-            return div;
-        }
-
-        function placeCard(key, order) {
-            const card = createOrderCard(key, order);
-            if (order.status === 'new' || order.status === 'accepted') {
-                activeDiv.prepend(card);
-                // 移除“暂无”占位文字
-                if (activeDiv.querySelector('p')) activeDiv.innerHTML = '';
-            } else {
-                historyDiv.prepend(card);
-                if (historyDiv.querySelector('p')) historyDiv.innerHTML = '';
+        function renderAllOrders(snapshot) {
+            activeDiv.innerHTML = '';
+            historyDiv.innerHTML = '';
+            if (!snapshot.exists()) {
+                activeDiv.innerHTML = '暂无进行中的订单';
+                historyDiv.innerHTML = '暂无历史记录';
+                return;
             }
-        }
+            const orders = [];
+            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+            orders.sort((a, b) => b.time.localeCompare(a.time));
 
-        // 监听新增
-        database.ref('orders').on('child_added', snapshot => {
-            placeCard(snapshot.key, snapshot.val());
-        });
-
-        // 监听状态变化
-        database.ref('orders').on('child_changed', snapshot => {
-            const key = snapshot.key;
-            const oldCard = document.getElementById('order-' + key);
-            if (oldCard) {
-                const newCard = createOrderCard(key, snapshot.val());
-                oldCard.replaceWith(newCard);
-                // 重新调整位置：如果状态变了，挪到对应区域
-                const order = snapshot.val();
-                const currentCard = document.getElementById('order-' + key);
-                if (currentCard) {
-                    currentCard.remove();
-                    placeCard(key, order);
+            let hasActive = false;
+            let hasHistory = false;
+            orders.forEach(order => {
+                const div = document.createElement('div');
+                div.className = 'order-item';
+                div.id = 'order-' + order.key;
+                const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
+                const status = statusMap[order.status] || order.status;
+                div.innerHTML = `
+                    <div class="order-detail">
+                        <strong>${order.dish}</strong>
+                        ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
+                        <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
+                    </div>
+                    <span class="status-badge status-${order.status}">${status}</span>
+                `;
+                if (order.status === 'new' || order.status === 'accepted') {
+                    activeDiv.appendChild(div);
+                    hasActive = true;
+                } else {
+                    historyDiv.appendChild(div);
+                    hasHistory = true;
                 }
-            }
+            });
+            if (!hasActive) activeDiv.innerHTML = '暂无进行中的订单';
+            if (!hasHistory) historyDiv.innerHTML = '暂无历史记录';
+        }
+
+        database.ref('orders').on('value', snapshot => {
+            renderAllOrders(snapshot);
         });
 
-        // 监听删除
-        database.ref('orders').on('child_removed', snapshot => {
-            const card = document.getElementById('order-' + snapshot.key);
-            if (card) card.remove();
-        });
-
-        // 归档功能（和B端一致）
+        // 归档功能
         document.getElementById('archive-done').addEventListener('click', () => {
             const archiveRef = database.ref('archived_orders');
             database.ref('orders').once('value', snapshot => {
