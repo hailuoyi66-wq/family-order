@@ -19,6 +19,7 @@
         .status-rejected { background: #f44336; }
         .status-done { background: #4CAF50; }
         .pull-refresh { text-align: center; padding: 8px; color: #999; font-size: 14px; display: none; }
+        .note-input { width: 100%; margin-top: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -58,12 +59,13 @@
             setTimeout(() => t.style.display = 'none', 2500);
         }
 
-        // 使用 XMLHttpRequest 发送，更稳定
-        function sendWechatMsg(dish) {
+        function sendWechatMsg(dish, note) {
             if (!SENDKEY || SENDKEY === "SCTxxxxxxxxxxxxx") return;
             var xhr = new XMLHttpRequest();
             xhr.open('POST', 'https://sctapi.ftqq.com/' + SENDKEY + '.send', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            var desp = '**' + dish + '**\n\n时间：' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            if (note) desp += '\n备注：' + note;
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     try {
@@ -78,33 +80,44 @@
                     }
                 }
             };
-            var data = 'title=' + encodeURIComponent('🍽️ 新订单') +
-                       '&desp=' + encodeURIComponent('**' + dish + '**\n\n时间：' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+            var data = 'title=' + encodeURIComponent('🍽️ 新订单') + '&desp=' + encodeURIComponent(desp);
             xhr.send(data);
         }
 
-        function order(dish) {
+        function order(dish, note) {
             database.ref('orders').push({
                 dish: dish,
                 time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-                status: 'new'
+                status: 'new',
+                note: note || ''
             }).then(() => {
                 showToast('已下单，正在通知妈妈...');
-                sendWechatMsg(dish);
+                sendWechatMsg(dish, note);
             }).catch(err => {
                 showToast('下单失败：' + err.message);
             });
         }
 
-        // 生成菜单
+        // 生成菜单（带备注输入框）
         const container = document.getElementById('menu-container');
         menu.forEach(dish => {
             const div = document.createElement('div');
             div.className = 'menu-item';
             div.innerHTML = `<span style="font-size:18px;">${dish}</span>`;
+
+            // 备注输入框
+            const noteInput = document.createElement('input');
+            noteInput.type = 'text';
+            noteInput.className = 'note-input';
+            noteInput.placeholder = '备注，如：少辣、不要葱';
+            div.appendChild(noteInput);
+
             const btn = document.createElement('button');
             btn.textContent = '点这个';
-            btn.onclick = () => order(dish);
+            btn.onclick = function() {
+                order(dish, noteInput.value.trim());
+                noteInput.value = ''; // 清空备注
+            };
             div.appendChild(btn);
             container.appendChild(div);
         });
@@ -150,11 +163,11 @@
             };
             const statusText = statusMap[order.status] || order.status;
             const statusClass = `status-${order.status}`;
+            let detail = `<strong>${order.dish}</strong>`;
+            if (order.note) detail += `<div style="color:#888;font-size:12px;">📝 ${order.note}</div>`;
+            detail += `<div style="color:#888;font-size:12px;">${order.time}</div>`;
             div.innerHTML = `
-                <div>
-                    <strong>${order.dish}</strong>
-                    <div style="color:#888;font-size:12px;">${order.time}</div>
-                </div>
+                <div>${detail}</div>
                 <span class="status-badge ${statusClass}">${statusText}</span>
             `;
             myOrdersDiv.prepend(div);
@@ -184,11 +197,11 @@
                     };
                     const statusText = statusMap[order.status] || order.status;
                     const statusClass = `status-${order.status}`;
+                    let detail = `<strong>${order.dish}</strong>`;
+                    if (order.note) detail += `<div style="color:#888;font-size:12px;">📝 ${order.note}</div>`;
+                    detail += `<div style="color:#888;font-size:12px;">${order.time}</div>`;
                     div.innerHTML = `
-                        <div>
-                            <strong>${order.dish}</strong>
-                            <div style="color:#888;font-size:12px;">${order.time}</div>
-                        </div>
+                        <div>${detail}</div>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     `;
                     myOrdersDiv.appendChild(div);
