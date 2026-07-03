@@ -49,13 +49,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-  firebase.initializeApp({ databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/" });
+  // 初始化 Firebase
+  firebase.initializeApp({
+    databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
+  });
   const db = firebase.database();
   const listDiv = document.getElementById('order-list');
   const sound = document.getElementById('sound');
 
   function playSound() { sound.play().catch(()=>{}); }
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 
   // 本地隐藏管理
   function getHidden() {
@@ -67,16 +72,20 @@
     localStorage.setItem('b_hidden_orders', JSON.stringify(h));
   }
 
+  // 更新订单状态
   function updateOrder(key, status) {
     db.ref('orders/' + key).update({ status });
   }
 
-  function renderCard(key, order) {
-    const hidden = getHidden();
-    if (hidden.includes(key)) return null;
+  // 创建订单卡片
+  function createCard(key, order) {
+    // 如果该订单在本地隐藏列表中，不创建卡片
+    if (getHidden().includes(key)) return null;
 
     const card = document.createElement('div');
     card.className = `order-card status-${order.status}`;
+    card.id = 'order-' + key;
+
     card.innerHTML = `
       <div style="flex:1">
         <div style="font-weight:bold; font-size:18px">${order.dish}</div>
@@ -87,6 +96,7 @@
 
     const btns = document.createElement('div');
     btns.className = 'btn-group';
+
     if (order.status === 'new') {
       btns.innerHTML = `
         <button class="action-btn accept">接单</button>
@@ -100,54 +110,77 @@
     } else {
       btns.innerHTML = `<span style="color:#64748b">${order.status==='done'?'✅已完成':'❌已拒绝'}</span>`;
     }
+
     card.appendChild(btns);
     return card;
   }
 
-  function renderAll() {
-    db.ref('orders').once('value', snapshot => {
-      listDiv.innerHTML = '';
-      if (!snapshot.exists()) return listDiv.textContent = '等待下单...';
-      const orders = [];
-      snapshot.forEach(c => orders.push({ key: c.key, ...c.val() }));
-      orders.sort((a, b) => b.time.localeCompare(a.time));
-      orders.forEach(o => {
-        const card = renderCard(o.key, o);
-        if (card) listDiv.appendChild(card);
-      });
-      if (!listDiv.children.length) listDiv.textContent = '没有订单';
-    });
-  }
-
-  db.ref('orders').on('value', () => renderAll());
-
-  document.getElementById('clear-local').onclick = () => {
-    db.ref('orders').once('value', snapshot => {
-      const toHide = [];
-      snapshot.forEach(c => {
-        const o = c.val();
-        if (o.status === 'done' || o.status === 'rejected') toHide.push(c.key);
-      });
-      if (!toHide.length) return alert('没有可隐藏的订单');
-      addHidden(toHide);
-      renderAll();
-      alert('已隐藏，数据库未动');
-    });
-  };
-
-  // 新订单提示
-  db.ref('orders').on('child_added', snap => {
-    if (snap.val().status === 'new' && !getHidden().includes(snap.key)) {
-      playSound();
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance('新订单：' + snap.val().dish);
-        u.lang = 'zh-CN'; window.speechSynthesis.speak(u);
+  // 监听新订单（使用 child_added，保证每条都显示）
+  db.ref('orders').on('child_added', snapshot => {
+    const key = snapshot.key;
+    const order = snapshot.val();
+    const card = createCard(key, order);
+    if (card) {
+      listDiv.prepend(card);
+      // 提示
+      if (order.status === 'new') {
+        playSound();
+        if ('speechSynthesis' in window) {
+          const u = new SpeechSynthesisUtterance('新订单：' + order.dish);
+          u.lang = 'zh-CN'; window.speechSynthesis.speak(u);
+        }
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('🍽️ 新订单', { body: order.dish });
+        }
       }
     }
   });
 
+  // 监听状态变化
+  db.ref('orders').on('child_changed', snapshot => {
+    const key = snapshot.key;
+    const oldCard = document.getElementById('order-' + key);
+    if (oldCard) {
+      const newCard = createCard(key, snapshot.val());
+      if (newCard) {
+        oldCard.replaceWith(newCard);
+      } else {
+        oldCard.remove(); // 如果新状态导致隐藏，移除卡片
+      }
+    }
+  });
+
+  // 监听删除（如果将来有）
+  db.ref('orders').on('child_removed', snapshot => {
+    const card = document.getElementById('order-' + snapshot.key);
+    if (card) card.remove();
+  });
+
+  // 清除按钮（只隐藏已完成/已拒绝）
+  document.getElementById('clear-local').onclick = () => {
+    db.ref('orders').once('value', snapshot => {
+      const toHide = [];
+      snapshot.forEach(child => {
+        const o = child.val();
+        if (o.status === 'done' || o.status === 'rejected') {
+          toHide.push(child.key);
+        }
+      });
+      if (toHide.length === 0) return alert('没有可隐藏的订单');
+      addHidden(toHide);
+      // 移除对应的卡片
+      toHide.forEach(key => {
+        const card = document.getElementById('order-' + key);
+        if (card) card.remove();
+      });
+      alert('已隐藏完成/拒绝的订单');
+    });
+  };
+
+  // 首次加载时清空占位文字（如果有订单则 child_added 会填充）
+  listDiv.innerHTML = '等待下单...';
+  // 激活声音
   document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
-  renderAll();
 </script>
 </body>
 </html>
