@@ -39,7 +39,11 @@
         const sound = document.getElementById('sound');
 
         function playSound() { sound.play().catch(()=>{}); }
-        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+
+        // 请求通知权限
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
 
         function showNotification(order) {
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -50,15 +54,18 @@
         function speakOrder(order) {
             if ('speechSynthesis' in window) {
                 const u = new SpeechSynthesisUtterance('新订单：' + order.dish);
-                u.lang = 'zh-CN'; u.rate = 1.0; window.speechSynthesis.speak(u);
+                u.lang = 'zh-CN'; u.rate = 1.0;
+                window.speechSynthesis.speak(u);
             }
         }
 
+        // 更新订单状态
         function updateOrder(key, status) {
-            database.ref('orders/' + key).update({ status });
+            database.ref('orders/' + key).update({ status: status });
         }
 
-        function renderCard(key, order) {
+        // 根据订单数据生成卡片 DOM
+        function createCard(key, order) {
             const card = document.createElement('div');
             card.className = 'order-card';
             card.id = 'order-' + key;
@@ -67,65 +74,83 @@
                 ${order.note ? `<div class="note">📝 ${order.note}</div>` : ''}
                 <div class="time">🕒 ${order.time}</div>
             `;
+
             const btnGroup = document.createElement('div');
             btnGroup.className = 'btn-group';
 
             if (order.status === 'new') {
-                const accept = document.createElement('button');
-                accept.className = 'action-btn accept-btn';
-                accept.textContent = '接单';
-                accept.onclick = () => updateOrder(key, 'accepted');
-                const reject = document.createElement('button');
-                reject.className = 'action-btn reject-btn';
-                reject.textContent = '今天没有';
-                reject.onclick = () => updateOrder(key, 'rejected');
-                btnGroup.appendChild(accept);
-                btnGroup.appendChild(reject);
+                const acceptBtn = document.createElement('button');
+                acceptBtn.className = 'action-btn accept-btn';
+                acceptBtn.textContent = '接单';
+                acceptBtn.onclick = () => updateOrder(key, 'accepted');
+
+                const rejectBtn = document.createElement('button');
+                rejectBtn.className = 'action-btn reject-btn';
+                rejectBtn.textContent = '今天没有';
+                rejectBtn.onclick = () => updateOrder(key, 'rejected');
+
+                btnGroup.appendChild(acceptBtn);
+                btnGroup.appendChild(rejectBtn);
             } else if (order.status === 'accepted') {
-                const done = document.createElement('button');
-                done.className = 'action-btn done-btn';
-                done.textContent = '做好了';
-                done.onclick = () => updateOrder(key, 'done');
-                btnGroup.appendChild(done);
+                const doneBtn = document.createElement('button');
+                doneBtn.className = 'action-btn done-btn';
+                doneBtn.textContent = '做好了';
+                doneBtn.onclick = () => updateOrder(key, 'done');
+                btnGroup.appendChild(doneBtn);
             } else {
                 const statusText = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
-                card.innerHTML += `<div style="margin-top:8px; color:#64748b;">${statusText}</div>`;
+                const statusDiv = document.createElement('div');
+                statusDiv.style.marginTop = '8px';
+                statusDiv.style.color = '#64748b';
+                statusDiv.textContent = statusText;
+                card.appendChild(statusDiv);
             }
+
             card.appendChild(btnGroup);
             return card;
         }
 
-        database.ref('orders').on('value', snapshot => {
-            listDiv.innerHTML = '';
-            if (!snapshot.exists()) { listDiv.innerHTML = '等待下单...'; return; }
-            const orders = [];
-            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-            orders.sort((a, b) => b.time.localeCompare(a.time));
-            orders.forEach(order => listDiv.appendChild(renderCard(order.key, order)));
+        // 监听新订单
+        database.ref('orders').on('child_added', snapshot => {
+            const key = snapshot.key;
+            const order = snapshot.val();
+            const card = createCard(key, order);
+            listDiv.prepend(card);
+
+            // 如果是新订单，提示
+            if (order.status === 'new') {
+                playSound();
+                speakOrder(order);
+                showNotification(order);
+            }
         });
 
-        let lastCount = 0;
-        database.ref('orders').on('value', snapshot => {
-            const count = snapshot.numChildren();
-            if (count > lastCount) {
-                playSound();
-                const orders = [];
-                snapshot.forEach(child => orders.push(child.val()));
-                if (orders.length) {
-                    speakOrder(orders[orders.length-1]);
-                    showNotification(orders[orders.length-1]);
-                }
+        // 监听订单状态变化
+        database.ref('orders').on('child_changed', snapshot => {
+            const key = snapshot.key;
+            const oldCard = document.getElementById('order-' + key);
+            if (oldCard) {
+                const newCard = createCard(key, snapshot.val());
+                oldCard.replaceWith(newCard);
             }
-            lastCount = count;
+        });
+
+        // 监听订单移除（如果以后加了删除功能）
+        database.ref('orders').on('child_removed', snapshot => {
+            const card = document.getElementById('order-' + snapshot.key);
+            if (card) card.remove();
         });
 
         // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
         let startY = 0;
-        document.addEventListener('touchstart', e => { if (window.scrollY === 0) startY = e.touches[0].clientY; });
+        document.addEventListener('touchstart', e => {
+            if (window.scrollY === 0) startY = e.touches[0].clientY;
+        });
         document.addEventListener('touchmove', e => {
             if (window.scrollY === 0 && e.touches[0].clientY - startY > 50) {
-                pullRefresh.style.display = 'block'; pullRefresh.textContent = '释放刷新';
+                pullRefresh.style.display = 'block';
+                pullRefresh.textContent = '释放刷新';
             }
         });
         document.addEventListener('touchend', () => {
@@ -136,6 +161,7 @@
             pullRefresh.style.display = 'none';
         });
 
+        // 首次点击激活声音
         document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
     </script>
 </body>
