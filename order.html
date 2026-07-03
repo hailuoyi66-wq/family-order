@@ -43,8 +43,8 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 微信推送 SendKey（如果要启用，把下面这行改成妈妈给你的真实 SendKey）
-        const SENDKEY = "SCTxxxxxxxxxxxxx";
+        // 🔔 已配置微信推送 SendKey（你的真实 key）
+        const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
         const menu = [
             "红烧排骨", "番茄炒蛋", "酸辣土豆丝", "可乐鸡翅", "玉米炒火腿",
@@ -58,15 +58,22 @@
             setTimeout(() => t.style.display = 'none', 2000);
         }
 
-        // 发送微信消息（如果配置了 SENDKEY）
+        // 发送微信消息
         function sendWechatMsg(dish) {
-            if (!SENDKEY || SENDKEY === "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ") return;
+            if (!SENDKEY || SENDKEY === "SCTxxxxxxxxxxxxx") return;
             const url = `https://sctapi.ftqq.com/${SENDKEY}.send`;
             const data = new URLSearchParams({
                 title: '🍽️ 新订单',
                 desp: `**${dish}**\n\n时间：${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
             });
-            fetch(url, { method: 'POST', body: data }).catch(err => console.log('微信推送失败：', err));
+            fetch(url, { method: 'POST', body: data })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.code !== 0) {
+                        console.log('微信推送失败：', result);
+                    }
+                })
+                .catch(err => console.log('微信推送请求出错：', err));
         }
 
         function order(dish) {
@@ -76,7 +83,7 @@
                 status: 'new'
             }).then(() => {
                 showToast();
-                sendWechatMsg(dish);
+                sendWechatMsg(dish); // 下单时自动发微信
             }).catch(err => {
                 alert('下单失败：' + err.message);
             });
