@@ -5,58 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>我想吃的菜</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 450px; margin: 20px auto; padding: 0 15px; background: #fffaf5; }
-        h2 { text-align: center; color: #FF6B35; }
-        .menu-item { background: white; padding: 15px; margin: 12px 0; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; }
-        .qty-control { display: flex; align-items: center; gap: 8px; }
-        .qty-btn { background: #eee; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; color: #333; }
-        .qty-btn:active { background: #ddd; }
-        .qty-num { font-size: 16px; min-width: 24px; text-align: center; }
-        .custom-area { background: white; padding: 15px; margin: 15px 0; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .custom-area input { padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: calc(100% - 80px); box-sizing: border-box; }
-        .submit-btn { background: #FF6B35; color: white; border: none; padding: 14px; border-radius: 25px; font-size: 18px; cursor: pointer; width: 100%; margin: 10px 0 20px; }
-        .submit-btn:active { background: #e55a2b; }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 25px; border-radius: 30px; display: none; z-index: 999; }
-        .my-order { background: #fff; border-radius: 15px; padding: 15px; margin-top: 20px; }
-        .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; }
-        .status-new { background: #ff9800; }
-        .status-accepted { background: #2196F3; }
-        .status-rejected { background: #f44336; }
-        .status-done { background: #4CAF50; }
-        .pull-refresh { text-align: center; padding: 8px; color: #999; font-size: 14px; display: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #eef5ff; max-width: 450px; margin: 0 auto; padding: 20px 15px; color: #1e293b; }
+        h2 { text-align: center; color: #1e40af; font-size: 24px; margin-bottom: 15px; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+        .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .menu-name { font-size: 17px; font-weight: 600; }
+        .qty-control { display: flex; align-items: center; gap: 10px; }
+        .qty-btn { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer; transition: background 0.2s; }
+        .qty-btn:active { background: #cbd5e1; }
+        .qty-num { font-size: 16px; min-width: 20px; text-align: center; font-weight: 500; }
+        .note-input { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; margin-top: 5px; background: #f8fafc; }
+        .note-input:focus { outline: none; border-color: #2563EB; }
+        .custom-header { font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: #1e40af; }
+        .custom-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .custom-row input[type="text"] { flex: 2; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; background: #f8fafc; }
+        .custom-row .note-input { flex: 1.5; min-width: 100px; }
+        .btn-sm { padding: 6px 14px; border: none; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: 500; }
+        .btn-add { background: #2563EB; color: white; }
+        .btn-delete { background: #fee2e2; color: #b91c1c; }
+        .btn-submit { background: #2563EB; color: white; border: none; padding: 14px; border-radius: 25px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; margin: 15px 0 20px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: background 0.2s; }
+        .btn-submit:active { background: #1d4ed8; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; display: none; z-index: 999; }
+        .order-section { margin-top: 20px; }
+        .order-item { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
+        .order-detail { flex: 1; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; font-weight: 500; }
+        .status-new { background: #f59e0b; }
+        .status-accepted { background: #2563EB; }
+        .status-rejected { background: #ef4444; }
+        .status-done { background: #10b981; }
+        .pull-refresh { text-align: center; padding: 8px; color: #64748b; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
-    <h2>🛒 想吃什么？</h2>
+    <h2>🛒 今天想吃什么？</h2>
     <div class="pull-refresh" id="pull-refresh">下拉刷新</div>
     <div id="menu-container"></div>
 
-    <!-- 自定义菜 -->
-    <div class="custom-area">
-        <div style="margin-bottom:8px;font-weight:bold;">✏️ 自定义想吃的菜</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <input type="text" id="custom-dish" placeholder="输入菜名，如：水煮鱼" style="flex:1;">
-            <div class="qty-control">
-                <button class="qty-btn" id="custom-minus">−</button>
-                <span class="qty-num" id="custom-qty">0</span>
-                <button class="qty-btn" id="custom-plus">+</button>
-            </div>
+    <!-- 自定义菜区域 -->
+    <div class="card">
+        <div class="custom-header">✏️ 自定义菜品</div>
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="new-custom-name" placeholder="输入菜名" style="flex:2;">
+            <button class="btn-sm btn-add" id="add-custom-btn">添加</button>
         </div>
-    </div>
-
-    <!-- 整单备注 -->
-    <div class="custom-area">
-        <div style="margin-bottom:8px;font-weight:bold;">📝 整单备注（可选）</div>
-        <input type="text" id="global-note" placeholder="如：少油、不要味精" style="width:100%;">
+        <div id="custom-list"></div>
     </div>
 
     <!-- 一键下单 -->
-    <button class="submit-btn" id="submit-all">🚀 一键下单</button>
+    <button class="btn-submit" id="submit-all">🚀 一键下单</button>
 
-    <div class="my-order">
-        <h3>📋 我的订单</h3>
-        <div id="my-orders">加载中...</div>
+    <!-- 我的订单 -->
+    <div class="order-section">
+        <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 我的订单</h3>
+        <div id="my-orders">暂无订单</div>
     </div>
 
     <div id="toast"></div>
@@ -79,10 +82,10 @@
             "地三鲜", "麻婆豆腐", "青椒肉丝", "蒜蓉西兰花", "干煸豆角"
         ];
 
-        // 存储每道菜的数量（用对象）
-        const quantityMap = {};
-        menu.forEach(dish => { quantityMap[dish] = 0; });
-        let customQuantity = 0;
+        // 存储数据：菜单数量、菜单备注、自定义菜列表
+        const menuData = {};
+        menu.forEach(dish => { menuData[dish] = { qty: 0, note: '' }; });
+        const customDishes = [];  // { name, qty, note }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
@@ -91,26 +94,16 @@
             setTimeout(() => t.style.display = 'none', 2500);
         }
 
-        function sendWechatMsg(dishListStr) {
+        function sendWechatMsg(summaryLines) {
             if (!SENDKEY || SENDKEY === "SCTxxxxxxxxxxxxx") return;
-            var xhr = new XMLHttpRequest();
+            const xhr = new XMLHttpRequest();
             xhr.open('POST', 'https://sctapi.ftqq.com/' + SENDKEY + '.send', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            var now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-            var desp = '**新订单**\n\n' + dishListStr + '\n时间：' + now;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    try {
-                        var result = JSON.parse(xhr.responseText);
-                        if (result.code !== 0) console.log('微信推送失败：', result);
-                    } catch (e) {}
-                }
-            };
-            var data = 'title=' + encodeURIComponent('🍽️ 新订单') + '&desp=' + encodeURIComponent(desp);
-            xhr.send(data);
+            const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            const desp = '**新订单**\n\n' + summaryLines.join('\n') + '\n\n时间：' + now;
+            xhr.send('title=' + encodeURIComponent('🍽️ 新订单') + '&desp=' + encodeURIComponent(desp));
         }
 
-        // 单条下单函数（内部用）
         function pushOrder(dish, note) {
             return database.ref('orders').push({
                 dish: dish,
@@ -120,30 +113,109 @@
             });
         }
 
-        // 一键下单
-        document.getElementById('submit-all').addEventListener('click', function() {
-            const note = document.getElementById('global-note').value.trim();
-            const promises = [];
-            const orderedItems = [];
+        // 渲染菜单
+        const menuContainer = document.getElementById('menu-container');
+        menu.forEach(dish => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="menu-row">
+                    <span class="menu-name">${dish}</span>
+                    <div class="qty-control">
+                        <button class="qty-btn minus-btn">−</button>
+                        <span class="qty-num">0</span>
+                        <button class="qty-btn plus-btn">+</button>
+                    </div>
+                </div>
+                <input type="text" class="note-input" placeholder="备注，如：少辣" data-dish="${dish}">
+            `;
+            const minusBtn = card.querySelector('.minus-btn');
+            const plusBtn = card.querySelector('.plus-btn');
+            const numSpan = card.querySelector('.qty-num');
+            const noteInput = card.querySelector('.note-input');
 
-            // 收集已选菜品
-            for (let dish of menu) {
-                let qty = quantityMap[dish] || 0;
+            minusBtn.onclick = () => {
+                if (menuData[dish].qty > 0) {
+                    menuData[dish].qty--;
+                    numSpan.textContent = menuData[dish].qty;
+                }
+            };
+            plusBtn.onclick = () => {
+                menuData[dish].qty++;
+                numSpan.textContent = menuData[dish].qty;
+            };
+            noteInput.oninput = (e) => {
+                menuData[dish].note = e.target.value.trim();
+            };
+
+            menuContainer.appendChild(card);
+        });
+
+        // 自定义菜添加逻辑
+        document.getElementById('add-custom-btn').addEventListener('click', () => {
+            const nameInput = document.getElementById('new-custom-name');
+            const name = nameInput.value.trim();
+            if (!name) { showToast('请输入菜名'); return; }
+            if (customDishes.some(cd => cd.name === name)) { showToast('已添加过这道菜'); return; }
+            customDishes.push({ name, qty: 0, note: '' });
+            nameInput.value = '';
+            renderCustomList();
+        });
+
+        function renderCustomList() {
+            const listDiv = document.getElementById('custom-list');
+            listDiv.innerHTML = '';
+            customDishes.forEach((cd, index) => {
+                const row = document.createElement('div');
+                row.className = 'custom-row';
+                row.innerHTML = `
+                    <span style="font-weight:500; flex:1;">${cd.name}</span>
+                    <div class="qty-control">
+                        <button class="qty-btn cust-minus">−</button>
+                        <span class="qty-num">${cd.qty}</span>
+                        <button class="qty-btn cust-plus">+</button>
+                    </div>
+                    <input type="text" class="note-input" placeholder="备注" value="${cd.note}" style="flex:1.5;">
+                    <button class="btn-sm btn-delete cust-delete">删除</button>
+                `;
+                const minusBtn = row.querySelector('.cust-minus');
+                const plusBtn = row.querySelector('.cust-plus');
+                const numSpan = row.querySelector('.qty-num');
+                const noteInput = row.querySelector('.note-input');
+                const deleteBtn = row.querySelector('.cust-delete');
+
+                minusBtn.onclick = () => {
+                    if (cd.qty > 0) { cd.qty--; numSpan.textContent = cd.qty; }
+                };
+                plusBtn.onclick = () => { cd.qty++; numSpan.textContent = cd.qty; };
+                noteInput.oninput = (e) => { cd.note = e.target.value.trim(); };
+                deleteBtn.onclick = () => {
+                    customDishes.splice(index, 1);
+                    renderCustomList();
+                };
+
+                listDiv.appendChild(row);
+            });
+        }
+
+        // 一键下单
+        document.getElementById('submit-all').addEventListener('click', () => {
+            const promises = [];
+            const summary = [];
+
+            menu.forEach(dish => {
+                const { qty, note } = menuData[dish];
                 if (qty > 0) {
-                    orderedItems.push(dish + ' ×' + qty);
-                    for (let i = 0; i < qty; i++) {
-                        promises.push(pushOrder(dish, note));
-                    }
+                    summary.push(dish + ' ×' + qty + (note ? ' (备注: ' + note + ')' : ''));
+                    for (let i = 0; i < qty; i++) promises.push(pushOrder(dish, note));
                 }
-            }
-            // 自定义菜
-            const customDish = document.getElementById('custom-dish').value.trim();
-            if (customDish && customQuantity > 0) {
-                orderedItems.push(customDish + ' ×' + customQuantity);
-                for (let i = 0; i < customQuantity; i++) {
-                    promises.push(pushOrder(customDish, note));
+            });
+            customDishes.forEach(cd => {
+                if (cd.qty > 0) {
+                    summary.push(cd.name + ' ×' + cd.qty + (cd.note ? ' (备注: ' + cd.note + ')' : ''));
+                    for (let i = 0; i < cd.qty; i++) promises.push(pushOrder(cd.name, cd.note));
                 }
-            }
+            });
 
             if (promises.length === 0) {
                 showToast('请至少选一道菜！');
@@ -151,95 +223,25 @@
             }
 
             Promise.all(promises).then(() => {
-                showToast('已下单，微信已提醒妈妈！');
-                // 发送微信汇总
-                var dishListStr = orderedItems.join('\n');
-                if (note) dishListStr += '\n备注：' + note;
-                sendWechatMsg(dishListStr);
-                // 重置所有数量
-                menu.forEach(d => { quantityMap[d] = 0; });
-                customQuantity = 0;
-                document.getElementById('custom-qty').textContent = '0';
-                document.getElementById('custom-dish').value = '';
-                document.getElementById('global-note').value = '';
-                updateAllQtyDisplay();
-            }).catch(err => {
-                showToast('下单失败：' + err.message);
-            });
+                showToast('已下单，微信已提醒妈妈');
+                sendWechatMsg(summary);
+                // 重置
+                menu.forEach(d => { menuData[d].qty = 0; menuData[d].note = ''; });
+                customDishes.length = 0;
+                document.getElementById('custom-list').innerHTML = '';
+                // 重置所有DOM显示
+                document.querySelectorAll('.qty-num').forEach(sp => sp.textContent = '0');
+                document.querySelectorAll('.note-input').forEach(inp => inp.value = '');
+            }).catch(err => showToast('下单失败: ' + err.message));
         });
-
-        // 渲染菜单（带加减控件）
-        const container = document.getElementById('menu-container');
-        menu.forEach(dish => {
-            const div = document.createElement('div');
-            div.className = 'menu-item';
-            div.innerHTML = `<span style="font-size:18px;">${dish}</span>`;
-
-            const qtyDiv = document.createElement('div');
-            qtyDiv.className = 'qty-control';
-            const minus = document.createElement('button');
-            minus.className = 'qty-btn';
-            minus.textContent = '−';
-            const numSpan = document.createElement('span');
-            numSpan.className = 'qty-num';
-            numSpan.id = 'qty-' + dish;
-            numSpan.textContent = '0';
-            const plus = document.createElement('button');
-            plus.className = 'qty-btn';
-            plus.textContent = '+';
-
-            minus.onclick = function() {
-                if (quantityMap[dish] > 0) {
-                    quantityMap[dish]--;
-                    numSpan.textContent = quantityMap[dish];
-                }
-            };
-            plus.onclick = function() {
-                quantityMap[dish]++;
-                numSpan.textContent = quantityMap[dish];
-            };
-
-            qtyDiv.appendChild(minus);
-            qtyDiv.appendChild(numSpan);
-            qtyDiv.appendChild(plus);
-            div.appendChild(qtyDiv);
-            container.appendChild(div);
-        });
-
-        // 自定义菜数量控制
-        document.getElementById('custom-plus').onclick = function() {
-            customQuantity++;
-            document.getElementById('custom-qty').textContent = customQuantity;
-        };
-        document.getElementById('custom-minus').onclick = function() {
-            if (customQuantity > 0) {
-                customQuantity--;
-                document.getElementById('custom-qty').textContent = customQuantity;
-            }
-        };
-
-        function updateAllQtyDisplay() {
-            menu.forEach(dish => {
-                const span = document.getElementById('qty-' + dish);
-                if (span) span.textContent = quantityMap[dish] || 0;
-            });
-            document.getElementById('custom-qty').textContent = customQuantity;
-        }
 
         // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
         let startY = 0;
-        document.addEventListener('touchstart', e => {
-            if (window.scrollY === 0) startY = e.touches[0].clientY;
-        });
+        document.addEventListener('touchstart', e => { if (window.scrollY === 0) startY = e.touches[0].clientY; });
         document.addEventListener('touchmove', e => {
-            if (window.scrollY === 0) {
-                if (e.touches[0].clientY - startY > 50) {
-                    pullRefresh.style.display = 'block';
-                    pullRefresh.textContent = '释放刷新';
-                } else {
-                    pullRefresh.style.display = 'none';
-                }
+            if (window.scrollY === 0 && e.touches[0].clientY - startY > 50) {
+                pullRefresh.style.display = 'block'; pullRefresh.textContent = '释放刷新';
             }
         });
         document.addEventListener('touchend', e => {
@@ -250,67 +252,25 @@
             pullRefresh.style.display = 'none';
         });
 
-        // 订单实时监听
+        // 实时订单
         const myOrdersDiv = document.getElementById('my-orders');
         myOrdersDiv.innerHTML = '暂无订单';
-
-        database.ref('orders').on('child_added', snapshot => {
-            const order = snapshot.val();
+        database.ref('orders').on('child_added', snap => {
+            const order = snap.val();
             const div = document.createElement('div');
             div.className = 'order-item';
-            const statusMap = {
-                new: '⏳ 等待接单',
-                accepted: '👩‍🍳 妈妈已接单',
-                rejected: '❌ 今天没有',
-                done: '✅ 已做好'
-            };
-            const statusText = statusMap[order.status] || order.status;
-            const statusClass = `status-${order.status}`;
-            let detail = `<strong>${order.dish}</strong>`;
-            if (order.note) detail += `<div style="color:#888;font-size:12px;">📝 ${order.note}</div>`;
-            detail += `<div style="color:#888;font-size:12px;">${order.time}</div>`;
+            const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
+            const status = statusMap[order.status] || order.status;
             div.innerHTML = `
-                <div>${detail}</div>
-                <span class="status-badge ${statusClass}">${statusText}</span>
+                <div class="order-detail">
+                    <strong>${order.dish}</strong>
+                    ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
+                    <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
+                </div>
+                <span class="status-badge status-${order.status}">${status}</span>
             `;
             myOrdersDiv.prepend(div);
-
-            database.ref('orders/' + snapshot.key).on('child_changed', () => {
-                refreshAllOrders();
-            });
         });
-
-        function refreshAllOrders() {
-            database.ref('orders').once('value', snapshot => {
-                myOrdersDiv.innerHTML = '';
-                if (!snapshot.exists()) {
-                    myOrdersDiv.innerHTML = '暂无订单';
-                    return;
-                }
-                const orders = [];
-                snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-                orders.reverse().forEach(order => {
-                    const div = document.createElement('div');
-                    div.className = 'order-item';
-                    const statusMap = {
-                        new: '⏳ 等待接单',
-                        accepted: '👩‍🍳 妈妈已接单',
-                        rejected: '❌ 今天没有',
-                        done: '✅ 已做好'
-                    };
-                    const statusText = statusMap[order.status] || order.status;
-                    const statusClass = `status-${order.status}`;
-                    let detail = `<strong>${order.dish}</strong>`;
-                    if (order.note) detail += `<div style="color:#888;font-size:12px;">📝 ${order.note}</div>`;
-                    detail += `<div style="color:#888;font-size:12px;">${order.time}</div>`;
-                    div.innerHTML = `
-                        <div>${detail}</div>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    `;
-                    myOrdersDiv.appendChild(div);
-                });
-            });
-        }
     </script>
 </body>
 </html>
