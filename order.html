@@ -18,13 +18,11 @@
         .status-accepted { background: #2196F3; }
         .status-rejected { background: #f44336; }
         .status-done { background: #4CAF50; }
-        /* 下拉刷新提示 */
         .pull-refresh { text-align: center; padding: 8px; color: #999; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
     <h2>🍽️ 想吃啥？</h2>
-    <!-- 下拉刷新提示条 -->
     <div class="pull-refresh" id="pull-refresh">下拉刷新</div>
     <div id="menu-container"></div>
     
@@ -45,7 +43,9 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 🔥 15道家常菜
+        // 微信推送 SendKey（如果要启用，把下面这行改成妈妈给你的真实 SendKey）
+        const SENDKEY = "SCTxxxxxxxxxxxxx";
+
         const menu = [
             "红烧排骨", "番茄炒蛋", "酸辣土豆丝", "可乐鸡翅", "玉米炒火腿",
             "紫菜蛋花汤", "红烧猪脚", "鱼香肉丝", "宫保鸡丁", "回锅肉",
@@ -58,6 +58,17 @@
             setTimeout(() => t.style.display = 'none', 2000);
         }
 
+        // 发送微信消息（如果配置了 SENDKEY）
+        function sendWechatMsg(dish) {
+            if (!SENDKEY || SENDKEY === "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ") return;
+            const url = `https://sctapi.ftqq.com/${SENDKEY}.send`;
+            const data = new URLSearchParams({
+                title: '🍽️ 新订单',
+                desp: `**${dish}**\n\n时间：${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+            });
+            fetch(url, { method: 'POST', body: data }).catch(err => console.log('微信推送失败：', err));
+        }
+
         function order(dish) {
             database.ref('orders').push({
                 dish: dish,
@@ -65,6 +76,7 @@
                 status: 'new'
             }).then(() => {
                 showToast();
+                sendWechatMsg(dish);
             }).catch(err => {
                 alert('下单失败：' + err.message);
             });
@@ -83,19 +95,16 @@
             container.appendChild(div);
         });
 
-        // 🔥 下拉刷新
+        // 下拉刷新
         const pullRefresh = document.getElementById('pull-refresh');
         let startY = 0;
         document.addEventListener('touchstart', e => {
-            if (window.scrollY === 0) {
-                startY = e.touches[0].clientY;
-            }
+            if (window.scrollY === 0) startY = e.touches[0].clientY;
         });
         document.addEventListener('touchmove', e => {
             if (window.scrollY === 0) {
                 const currentY = e.touches[0].clientY;
-                const diff = currentY - startY;
-                if (diff > 50) {
+                if (currentY - startY > 50) {
                     pullRefresh.style.display = 'block';
                     pullRefresh.textContent = '释放刷新';
                 } else {
@@ -106,15 +115,12 @@
         document.addEventListener('touchend', e => {
             if (pullRefresh.textContent === '释放刷新') {
                 pullRefresh.textContent = '刷新中...';
-                // 强制重新渲染订单（实际上监听会自动刷新，这里加个安全重载）
-                setTimeout(() => {
-                    window.location.reload();
-                }, 300);
+                setTimeout(() => window.location.reload(), 300);
             }
             pullRefresh.style.display = 'none';
         });
 
-        // 实时显示订单及状态
+        // 订单监听
         const myOrdersDiv = document.getElementById('my-orders');
         myOrdersDiv.innerHTML = '暂无订单';
 
