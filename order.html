@@ -8,39 +8,49 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #eef5ff; max-width: 450px; margin: 0 auto; padding: 20px 15px; color: #1e293b; }
         h2 { text-align: center; color: #1e40af; font-size: 24px; margin-bottom: 15px; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); transition: transform 0.1s; }
+        .card:active { transform: scale(0.99); }
         .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
         .menu-name { font-size: 17px; font-weight: 600; }
-        .qty-control { display: flex; align-items: center; gap: 10px; }
-        .qty-btn { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer; transition: background 0.2s; }
-        .qty-btn:active { background: #cbd5e1; }
-        .qty-num { font-size: 16px; min-width: 20px; text-align: center; font-weight: 500; }
+        .qty-control { display: flex; align-items: center; gap: 8px; }
+        .qty-btn { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer; transition: all 0.15s; }
+        .qty-btn:active { transform: scale(0.9); background: #cbd5e1; }
+        .qty-num { font-size: 16px; min-width: 28px; text-align: center; font-weight: 500; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background 0.2s; }
+        .qty-num:hover { background: #f1f5f9; }
         .note-input { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; margin-top: 5px; background: #f8fafc; }
         .note-input:focus { outline: none; border-color: #2563EB; }
         .custom-header { font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: #1e40af; }
         .custom-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         .custom-row input[type="text"] { flex: 2; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; background: #f8fafc; }
         .custom-row .note-input { flex: 1.5; min-width: 100px; }
-        .btn-sm { padding: 6px 14px; border: none; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: 500; }
-        .btn-add { background: #2563EB; color: white; }
+        .btn-sm { padding: 7px 16px; border: none; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+        .btn-sm:active { transform: scale(0.95); }
+        .btn-add { background: #2563EB; color: white; box-shadow: 0 2px 8px rgba(37,99,235,0.4); }
         .btn-delete { background: #fee2e2; color: #b91c1c; }
-        .btn-submit { background: #2563EB; color: white; border: none; padding: 14px; border-radius: 25px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; margin: 15px 0 20px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: background 0.2s; }
-        .btn-submit:active { background: #1d4ed8; }
+        .btn-submit { background: #2563EB; color: white; border: none; padding: 14px; border-radius: 25px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; margin: 15px 0 20px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: all 0.2s; }
+        .btn-submit:active { transform: scale(0.97); background: #1d4ed8; }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; display: none; z-index: 999; }
         .order-section { margin-top: 20px; }
-        .order-item { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
+        .order-item { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
         .order-detail { flex: 1; }
         .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; font-weight: 500; }
         .status-new { background: #f59e0b; }
         .status-accepted { background: #2563EB; }
         .status-rejected { background: #ef4444; }
         .status-done { background: #10b981; }
-        .pull-refresh { text-align: center; padding: 8px; color: #64748b; font-size: 14px; display: none; }
+        .pull-refresh { text-align: center; padding: 10px; color: #64748b; font-size: 14px; display: none; align-items: center; justify-content: center; gap: 8px; }
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-top: 2px solid #2563EB; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .history-toggle { background: #f1f5f9; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 15px; font-size: 15px; cursor: pointer; color: #475569; transition: background 0.2s; }
+        .history-toggle:active { background: #e2e8f0; }
     </style>
 </head>
 <body>
     <h2>🛒 今天想吃什么？</h2>
-    <div class="pull-refresh" id="pull-refresh">下拉刷新</div>
+    <div class="pull-refresh" id="pull-refresh">
+        <div class="spinner" id="refresh-spinner"></div>
+        <span id="refresh-text">下拉刷新</span>
+    </div>
     <div id="menu-container"></div>
 
     <!-- 自定义菜区域 -->
@@ -48,7 +58,7 @@
         <div class="custom-header">✏️ 自定义菜品</div>
         <div style="display:flex; gap:8px;">
             <input type="text" id="new-custom-name" placeholder="输入菜名" style="flex:2;">
-            <button class="btn-sm btn-add" id="add-custom-btn">添加</button>
+            <button class="btn-sm btn-add" id="add-custom-btn">➕ 添加</button>
         </div>
         <div id="custom-list"></div>
     </div>
@@ -58,8 +68,11 @@
 
     <!-- 我的订单 -->
     <div class="order-section">
-        <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 我的订单</h3>
-        <div id="my-orders">暂无订单</div>
+        <h3 style="font-size:18px; color:#1e40af; margin-bottom:10px;">📋 进行中</h3>
+        <div id="active-orders">暂无进行中的订单</div>
+
+        <button class="history-toggle" id="toggle-history">📜 查看历史记录</button>
+        <div id="history-orders" style="display:none; margin-top:10px;"></div>
     </div>
 
     <div id="toast"></div>
@@ -82,10 +95,9 @@
             "地三鲜", "麻婆豆腐", "青椒肉丝", "蒜蓉西兰花", "干煸豆角"
         ];
 
-        // 存储数据：菜单数量、菜单备注、自定义菜列表
         const menuData = {};
         menu.forEach(dish => { menuData[dish] = { qty: 0, note: '' }; });
-        const customDishes = [];  // { name, qty, note }
+        const customDishes = [];
 
         function showToast(msg) {
             const t = document.getElementById('toast');
@@ -123,11 +135,11 @@
                     <span class="menu-name">${dish}</span>
                     <div class="qty-control">
                         <button class="qty-btn minus-btn">−</button>
-                        <span class="qty-num">0</span>
+                        <span class="qty-num" data-dish="${dish}">0</span>
                         <button class="qty-btn plus-btn">+</button>
                     </div>
                 </div>
-                <input type="text" class="note-input" placeholder="备注，如：少辣" data-dish="${dish}">
+                <input type="text" class="note-input" placeholder="备注" data-dish="${dish}">
             `;
             const minusBtn = card.querySelector('.minus-btn');
             const plusBtn = card.querySelector('.plus-btn');
@@ -144,6 +156,18 @@
                 menuData[dish].qty++;
                 numSpan.textContent = menuData[dish].qty;
             };
+            // 点击数字可手动输入
+            numSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newQty = prompt(`输入 ${dish} 的数量`, menuData[dish].qty);
+                if (newQty !== null) {
+                    const num = parseInt(newQty);
+                    if (!isNaN(num) && num >= 0) {
+                        menuData[dish].qty = num;
+                        numSpan.textContent = num;
+                    }
+                }
+            });
             noteInput.oninput = (e) => {
                 menuData[dish].note = e.target.value.trim();
             };
@@ -151,7 +175,7 @@
             menuContainer.appendChild(card);
         });
 
-        // 自定义菜添加逻辑
+        // 自定义菜
         document.getElementById('add-custom-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('new-custom-name');
             const name = nameInput.value.trim();
@@ -172,7 +196,7 @@
                     <span style="font-weight:500; flex:1;">${cd.name}</span>
                     <div class="qty-control">
                         <button class="qty-btn cust-minus">−</button>
-                        <span class="qty-num">${cd.qty}</span>
+                        <span class="qty-num cust-num">${cd.qty}</span>
                         <button class="qty-btn cust-plus">+</button>
                     </div>
                     <input type="text" class="note-input" placeholder="备注" value="${cd.note}" style="flex:1.5;">
@@ -180,7 +204,7 @@
                 `;
                 const minusBtn = row.querySelector('.cust-minus');
                 const plusBtn = row.querySelector('.cust-plus');
-                const numSpan = row.querySelector('.qty-num');
+                const numSpan = row.querySelector('.cust-num');
                 const noteInput = row.querySelector('.note-input');
                 const deleteBtn = row.querySelector('.cust-delete');
 
@@ -188,6 +212,16 @@
                     if (cd.qty > 0) { cd.qty--; numSpan.textContent = cd.qty; }
                 };
                 plusBtn.onclick = () => { cd.qty++; numSpan.textContent = cd.qty; };
+                numSpan.addEventListener('click', () => {
+                    const newQty = prompt(`输入 ${cd.name} 的数量`, cd.qty);
+                    if (newQty !== null) {
+                        const num = parseInt(newQty);
+                        if (!isNaN(num) && num >= 0) {
+                            cd.qty = num;
+                            numSpan.textContent = num;
+                        }
+                    }
+                });
                 noteInput.oninput = (e) => { cd.note = e.target.value.trim(); };
                 deleteBtn.onclick = () => {
                     customDishes.splice(index, 1);
@@ -225,51 +259,90 @@
             Promise.all(promises).then(() => {
                 showToast('已下单，微信已提醒妈妈');
                 sendWechatMsg(summary);
-                // 重置
                 menu.forEach(d => { menuData[d].qty = 0; menuData[d].note = ''; });
                 customDishes.length = 0;
                 document.getElementById('custom-list').innerHTML = '';
-                // 重置所有DOM显示
                 document.querySelectorAll('.qty-num').forEach(sp => sp.textContent = '0');
                 document.querySelectorAll('.note-input').forEach(inp => inp.value = '');
             }).catch(err => showToast('下单失败: ' + err.message));
         });
 
-        // 下拉刷新
+        // 下拉刷新（带旋转动画）
         const pullRefresh = document.getElementById('pull-refresh');
+        const refreshText = document.getElementById('refresh-text');
+        const refreshSpinner = document.getElementById('refresh-spinner');
         let startY = 0;
         document.addEventListener('touchstart', e => { if (window.scrollY === 0) startY = e.touches[0].clientY; });
         document.addEventListener('touchmove', e => {
             if (window.scrollY === 0 && e.touches[0].clientY - startY > 50) {
-                pullRefresh.style.display = 'block'; pullRefresh.textContent = '释放刷新';
+                pullRefresh.style.display = 'flex';
+                refreshText.textContent = '释放刷新';
             }
         });
         document.addEventListener('touchend', e => {
-            if (pullRefresh.textContent === '释放刷新') {
-                pullRefresh.textContent = '刷新中...';
-                setTimeout(() => window.location.reload(), 300);
+            if (refreshText.textContent === '释放刷新') {
+                refreshText.textContent = '刷新中...';
+                refreshSpinner.style.display = 'block';
+                setTimeout(() => window.location.reload(), 400);
             }
             pullRefresh.style.display = 'none';
+            refreshSpinner.style.display = 'none';
         });
 
-        // 实时订单
-        const myOrdersDiv = document.getElementById('my-orders');
-        myOrdersDiv.innerHTML = '暂无订单';
-        database.ref('orders').on('child_added', snap => {
-            const order = snap.val();
-            const div = document.createElement('div');
-            div.className = 'order-item';
-            const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
-            const status = statusMap[order.status] || order.status;
-            div.innerHTML = `
-                <div class="order-detail">
-                    <strong>${order.dish}</strong>
-                    ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
-                    <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
-                </div>
-                <span class="status-badge status-${order.status}">${status}</span>
-            `;
-            myOrdersDiv.prepend(div);
+        // 实时订单区拆分
+        const activeDiv = document.getElementById('active-orders');
+        const historyDiv = document.getElementById('history-orders');
+
+        function renderOrders(snapshot) {
+            activeDiv.innerHTML = '';
+            historyDiv.innerHTML = '';
+            if (!snapshot.exists()) {
+                activeDiv.innerHTML = '暂无进行中的订单';
+                historyDiv.innerHTML = '暂无历史记录';
+                return;
+            }
+            const orders = [];
+            snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+            orders.sort((a, b) => b.time.localeCompare(a.time));
+
+            let hasActive = false, hasHistory = false;
+            orders.forEach(order => {
+                const div = document.createElement('div');
+                div.className = 'order-item';
+                const statusMap = { new: '⏳ 等待接单', accepted: '👩‍🍳 已接单', rejected: '❌ 没有', done: '✅ 已做好' };
+                const status = statusMap[order.status] || order.status;
+                div.innerHTML = `
+                    <div class="order-detail">
+                        <strong>${order.dish}</strong>
+                        ${order.note ? `<div style="color:#64748b; font-size:13px;">📝 ${order.note}</div>` : ''}
+                        <div style="color:#94a3b8; font-size:12px;">${order.time}</div>
+                    </div>
+                    <span class="status-badge status-${order.status}">${status}</span>
+                `;
+                if (order.status === 'new' || order.status === 'accepted') {
+                    activeDiv.appendChild(div);
+                    hasActive = true;
+                } else {
+                    historyDiv.appendChild(div);
+                    hasHistory = true;
+                }
+            });
+            if (!hasActive) activeDiv.innerHTML = '暂无进行中的订单';
+            if (!hasHistory) historyDiv.innerHTML = '暂无历史记录';
+        }
+
+        database.ref('orders').on('value', snapshot => renderOrders(snapshot));
+
+        // 历史记录折叠
+        document.getElementById('toggle-history').addEventListener('click', function() {
+            const hist = document.getElementById('history-orders');
+            if (hist.style.display === 'none') {
+                hist.style.display = 'block';
+                this.textContent = '📜 收起历史记录';
+            } else {
+                hist.style.display = 'none';
+                this.textContent = '📜 查看历史记录';
+            }
         });
     </script>
 </body>
