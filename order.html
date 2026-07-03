@@ -70,9 +70,9 @@
             showToast();
         }
 
-        // 生成菜单
+        // 生成菜单（闭包解决变量冲突）
         const container = document.getElementById('menu-container');
-        menu.forEach(dish => {
+        menu.forEach(function(dish) {
             const div = document.createElement('div');
             div.className = 'menu-item';
             div.innerHTML = `
@@ -99,8 +99,16 @@
             plusBtn.textContent = '+';
 
             let quantity = 1;
-            plusBtn.onclick = () => { quantity++; qtySpan.textContent = quantity; };
-            minusBtn.onclick = () => { if (quantity > 1) { quantity--; qtySpan.textContent = quantity; } };
+            plusBtn.onclick = function() {
+                quantity++;
+                qtySpan.textContent = quantity;
+            };
+            minusBtn.onclick = function() {
+                if (quantity > 1) {
+                    quantity--;
+                    qtySpan.textContent = quantity;
+                }
+            };
 
             controlDiv.appendChild(minusBtn);
             controlDiv.appendChild(qtySpan);
@@ -116,7 +124,7 @@
             const orderBtn = document.createElement('button');
             orderBtn.className = 'order-btn';
             orderBtn.textContent = '下单';
-            orderBtn.onclick = () => {
+            orderBtn.onclick = function() {
                 order(dish.name, quantity, noteInput.value);
                 quantity = 1;
                 qtySpan.textContent = '1';
