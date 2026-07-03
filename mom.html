@@ -5,182 +5,90 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>妈妈看单</title>
   <style>
-    :root { --primary: #2563eb; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(145deg, #eef2ff 0%, #e0eaff 100%);
-      min-height: 100vh; padding: 20px 16px; color: #1e293b;
-    }
-    .container { max-width: 450px; margin: 0 auto; }
-    .header h1 {
-      font-size: 28px; font-weight: 700; text-align: center;
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .top-btn {
-      width: 100%; padding: 12px; border-radius: 14px; border: none;
-      background: rgba(255,255,255,0.7); font-size: 15px; font-weight: 600;
-      margin: 12px 0; cursor: pointer;
-    }
-    .order-card {
-      background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px;
-      border-left: 4px solid #cbd5e1; display: flex; justify-content: space-between;
-    }
-    .order-card.status-new { border-left-color: #f59e0b; }
-    .order-card.status-accepted { border-left-color: #2563eb; }
-    .order-card.status-rejected { border-left-color: #ef4444; }
-    .order-card.status-done { border-left-color: #10b981; }
-    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
-    .action-btn {
-      flex:1; padding: 8px; border: none; border-radius: 20px; color: white; font-weight: 500;
-    }
-    .accept { background: #2563eb; } .reject { background: #ef4444; } .done { background: #10b981; }
-    audio { display: none; }
+    body { font-family: sans-serif; background: #eef5ff; padding: 20px; }
+    .order { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; border-left: 4px solid #f59e0b; }
+    .order.accepted { border-left-color: #2563eb; }
+    .order.done { border-left-color: #10b981; }
+    .order.rejected { border-left-color: #ef4444; }
+    button { margin-right: 6px; padding: 6px 12px; border-radius: 14px; border: none; color: white; }
+    .accept { background: #2563eb; }
+    .reject { background: #ef4444; }
+    .done { background: #10b981; }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="header"><h1>📋 点菜单</h1></div>
-  <button class="top-btn" id="clear-local">🧹 隐藏已完成/已拒绝（仅本机）</button>
-  <div id="order-list">等待下单...</div>
-  <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-</div>
+  <h2>📋 妈妈看单</h2>
+  <div id="list">连接中...</div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script>
-  // 初始化 Firebase
-  firebase.initializeApp({
-    databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
-  });
-  const db = firebase.database();
-  const listDiv = document.getElementById('order-list');
-  const sound = document.getElementById('sound');
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const list = document.getElementById('list');
 
-  function playSound() { sound.play().catch(()=>{}); }
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+    console.log('Firebase 初始化完成');
 
-  // 本地隐藏管理
-  function getHidden() {
-    return JSON.parse(localStorage.getItem('b_hidden_orders') || '[]');
-  }
-  function addHidden(keys) {
-    const h = getHidden();
-    keys.forEach(k => { if (!h.includes(k)) h.push(k); });
-    localStorage.setItem('b_hidden_orders', JSON.stringify(h));
-  }
-
-  // 更新订单状态
-  function updateOrder(key, status) {
-    db.ref('orders/' + key).update({ status });
-  }
-
-  // 创建订单卡片
-  function createCard(key, order) {
-    // 如果该订单在本地隐藏列表中，不创建卡片
-    if (getHidden().includes(key)) return null;
-
-    const card = document.createElement('div');
-    card.className = `order-card status-${order.status}`;
-    card.id = 'order-' + key;
-
-    card.innerHTML = `
-      <div style="flex:1">
-        <div style="font-weight:bold; font-size:18px">${order.dish}</div>
-        ${order.note ? `<div>📝 ${order.note}</div>` : ''}
-        <div style="color:#94a3b8; font-size:13px">${order.time}</div>
-      </div>
-    `;
-
-    const btns = document.createElement('div');
-    btns.className = 'btn-group';
-
-    if (order.status === 'new') {
-      btns.innerHTML = `
-        <button class="action-btn accept">接单</button>
-        <button class="action-btn reject">今天没有</button>
-      `;
-      btns.querySelector('.accept').onclick = () => updateOrder(key, 'accepted');
-      btns.querySelector('.reject').onclick = () => updateOrder(key, 'rejected');
-    } else if (order.status === 'accepted') {
-      btns.innerHTML = `<button class="action-btn done">做好了</button>`;
-      btns.querySelector('.done').onclick = () => updateOrder(key, 'done');
-    } else {
-      btns.innerHTML = `<span style="color:#64748b">${order.status==='done'?'✅已完成':'❌已拒绝'}</span>`;
-    }
-
-    card.appendChild(btns);
-    return card;
-  }
-
-  // 监听新订单（使用 child_added，保证每条都显示）
-  db.ref('orders').on('child_added', snapshot => {
-    const key = snapshot.key;
-    const order = snapshot.val();
-    const card = createCard(key, order);
-    if (card) {
-      listDiv.prepend(card);
-      // 提示
-      if (order.status === 'new') {
-        playSound();
-        if ('speechSynthesis' in window) {
-          const u = new SpeechSynthesisUtterance('新订单：' + order.dish);
-          u.lang = 'zh-CN'; window.speechSynthesis.speak(u);
-        }
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('🍽️ 新订单', { body: order.dish });
-        }
-      }
-    }
-  });
-
-  // 监听状态变化
-  db.ref('orders').on('child_changed', snapshot => {
-    const key = snapshot.key;
-    const oldCard = document.getElementById('order-' + key);
-    if (oldCard) {
-      const newCard = createCard(key, snapshot.val());
-      if (newCard) {
-        oldCard.replaceWith(newCard);
-      } else {
-        oldCard.remove(); // 如果新状态导致隐藏，移除卡片
-      }
-    }
-  });
-
-  // 监听删除（如果将来有）
-  db.ref('orders').on('child_removed', snapshot => {
-    const card = document.getElementById('order-' + snapshot.key);
-    if (card) card.remove();
-  });
-
-  // 清除按钮（只隐藏已完成/已拒绝）
-  document.getElementById('clear-local').onclick = () => {
+    // 先加载历史订单（防止 child_added 漏掉）
     db.ref('orders').once('value', snapshot => {
-      const toHide = [];
-      snapshot.forEach(child => {
-        const o = child.val();
-        if (o.status === 'done' || o.status === 'rejected') {
-          toHide.push(child.key);
-        }
-      });
-      if (toHide.length === 0) return alert('没有可隐藏的订单');
-      addHidden(toHide);
-      // 移除对应的卡片
-      toHide.forEach(key => {
-        const card = document.getElementById('order-' + key);
-        if (card) card.remove();
-      });
-      alert('已隐藏完成/拒绝的订单');
+      console.log('历史订单数量:', snapshot.numChildren());
+      list.innerHTML = '';
+      if (!snapshot.exists()) {
+        list.textContent = '暂无订单';
+        return;
+      }
+      const orders = [];
+      snapshot.forEach(c => orders.push({ key: c.key, ...c.val() }));
+      orders.sort((a, b) => b.time.localeCompare(a.time));
+      orders.forEach(o => addOrder(o.key, o));
     });
-  };
 
-  // 首次加载时清空占位文字（如果有订单则 child_added 会填充）
-  listDiv.innerHTML = '等待下单...';
-  // 激活声音
-  document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
-</script>
+    // 监听新订单
+    db.ref('orders').on('child_added', snapshot => {
+      console.log('收到新订单:', snapshot.key, snapshot.val());
+      addOrder(snapshot.key, snapshot.val());
+    });
+
+    // 监听状态变化
+    db.ref('orders').on('child_changed', snapshot => {
+      const old = document.getElementById('order-' + snapshot.key);
+      if (old) old.remove();
+      addOrder(snapshot.key, snapshot.val());
+    });
+
+    function addOrder(key, order) {
+      // 避免重复添加
+      if (document.getElementById('order-' + key)) return;
+      
+      const div = document.createElement('div');
+      div.className = `order ${order.status}`;
+      div.id = 'order-' + key;
+      div.innerHTML = `
+        <strong>${order.dish}</strong>
+        ${order.note ? `<div>📝 ${order.note}</div>` : ''}
+        <div style="color:#666; font-size:12px;">${order.time}</div>
+      `;
+
+      const btns = document.createElement('div');
+      if (order.status === 'new') {
+        btns.innerHTML = `
+          <button class="accept">接单</button>
+          <button class="reject">今天没有</button>
+        `;
+        btns.querySelector('.accept').onclick = () => db.ref('orders/' + key).update({ status: 'accepted' });
+        btns.querySelector('.reject').onclick = () => db.ref('orders/' + key).update({ status: 'rejected' });
+      } else if (order.status === 'accepted') {
+        btns.innerHTML = `<button class="done">做好了</button>`;
+        btns.querySelector('.done').onclick = () => db.ref('orders/' + key).update({ status: 'done' });
+      } else {
+        btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
+      }
+      div.appendChild(btns);
+      list.prepend(div);
+    }
+  </script>
 </body>
 </html>
