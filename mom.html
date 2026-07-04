@@ -1,97 +1,163 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>妈妈看单</title>
-  <style>
-    body { font-family: sans-serif; background: #eef5ff; padding: 20px; }
-    h2 { color: #1e40af; }
-    .order { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; border-left: 4px solid #f59e0b; }
-    .order.accepted { border-left-color: #2563eb; }
-    .order.done { border-left-color: #10b981; }
-    .order.rejected { border-left-color: #ef4444; }
-    button { margin-right: 6px; padding: 6px 12px; border-radius: 14px; border: none; color: white; }
-    .accept { background: #2563eb; } .reject { background: #ef4444; } .done { background: #10b981; }
-    .refresh-btn { background: #64748b; color: white; padding: 10px 20px; margin-bottom: 15px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>妈妈看单</title>
+    <style>
+        :root { --primary: #2563eb; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(145deg, #eef2ff 0%, #e0eaff 100%);
+            min-height: 100vh; padding: 20px 16px; color: #1e293b;
+        }
+        .container { max-width: 450px; margin: 0 auto; }
+        .header h1 {
+            font-size: 28px; font-weight: 700; text-align: center;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .top-btn {
+            width: 100%; padding: 12px; border-radius: 14px; border: none;
+            background: rgba(255,255,255,0.7); font-size: 15px; font-weight: 600;
+            margin: 12px 0; cursor: pointer;
+        }
+        .order-card {
+            background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px;
+            border-left: 4px solid #cbd5e1; display: flex; justify-content: space-between;
+        }
+        .order-card.status-new { border-left-color: #f59e0b; }
+        .order-card.status-accepted { border-left-color: #2563eb; }
+        .order-card.status-rejected { border-left-color: #ef4444; }
+        .order-card.status-done { border-left-color: #10b981; }
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .action-btn {
+            flex:1; padding: 8px; border: none; border-radius: 20px; color: white; font-weight: 500;
+        }
+        .accept { background: #2563eb; } .reject { background: #ef4444; } .done { background: #10b981; }
+        audio { display: none; }
+    </style>
 </head>
 <body>
-  <h2>📋 妈妈看单</h2>
-  <button class="refresh-btn" onclick="location.reload()">🔄 手动刷新</button>
-  <div id="list">暂无订单</div>
+<div class="container">
+    <div class="header"><h1>📋 点菜单</h1></div>
+    <button class="top-btn" id="clear-local">🧹 隐藏已完成/已拒绝（仅本机）</button>
+    <button class="top-btn" onclick="location.reload()">🔄 手动刷新</button>
+    <div id="order-list">暂无订单</div>
+    <audio id="sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+</div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
-    };
-    firebase.initializeApp(firebaseConfig);
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+    firebase.initializeApp({ databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/" });
     const db = firebase.database();
-    const listDiv = document.getElementById('list');
+    const listDiv = document.getElementById('order-list');
+    const sound = document.getElementById('sound');
+
+    function playSound() { sound.play().catch(()=>{}); }
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+
+    // 本地隐藏管理（B端独立）
+    function getHidden() {
+        return JSON.parse(localStorage.getItem('b_hidden_orders') || '[]');
+    }
+    function addHidden(keys) {
+        const h = getHidden();
+        keys.forEach(k => { if (!h.includes(k)) h.push(k); });
+        localStorage.setItem('b_hidden_orders', JSON.stringify(h));
+    }
 
     function updateOrder(key, status) {
-      db.ref('orders/' + key).update({ status });
+        db.ref('orders/' + key).update({ status });
     }
 
     function fetchOrders() {
-      db.ref('orders').once('value', snapshot => {
-        // 清空列表
-        listDiv.innerHTML = '';
-        
-        if (!snapshot.exists()) {
-          listDiv.textContent = '暂无订单';
-          return;
-        }
-
-        // 收集所有订单到数组
-        const orders = [];
-        snapshot.forEach(child => {
-          orders.push({ key: child.key, ...child.val() });
+        db.ref('orders').once('value', snapshot => {
+            listDiv.innerHTML = '';
+            if (!snapshot.exists()) {
+                listDiv.textContent = '暂无订单';
+                return;
+            }
+            const hidden = getHidden();
+            const orders = [];
+            snapshot.forEach(child => {
+                if (!hidden.includes(child.key)) {
+                    orders.push({ key: child.key, ...child.val() });
+                }
+            });
+            if (orders.length === 0) {
+                listDiv.textContent = '暂无订单';
+                return;
+            }
+            orders.sort((a, b) => b.time.localeCompare(a.time));
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = `order-card status-${order.status}`;
+                card.innerHTML = `
+                    <div style="flex:1">
+                        <div style="font-weight:bold; font-size:18px">${order.dish}</div>
+                        ${order.note ? `<div>📝 ${order.note}</div>` : ''}
+                        <div style="color:#94a3b8; font-size:13px">${order.time}</div>
+                    </div>
+                `;
+                const btns = document.createElement('div');
+                btns.className = 'btn-group';
+                if (order.status === 'new') {
+                    btns.innerHTML = `<button class="action-btn accept">接单</button><button class="action-btn reject">今天没有</button>`;
+                    btns.querySelector('.accept').onclick = () => updateOrder(order.key, 'accepted');
+                    btns.querySelector('.reject').onclick = () => updateOrder(order.key, 'rejected');
+                } else if (order.status === 'accepted') {
+                    btns.innerHTML = `<button class="action-btn done">做好了</button>`;
+                    btns.querySelector('.done').onclick = () => updateOrder(order.key, 'done');
+                } else {
+                    btns.innerHTML = `<span style="color:#64748b">${order.status==='done'?'✅已完成':'❌已拒绝'}</span>`;
+                }
+                card.appendChild(btns);
+                listDiv.appendChild(card);
+            });
         });
-        
-        // 按时间倒序排列
-        orders.sort((a, b) => b.time.localeCompare(a.time));
-
-        // 逐个创建卡片并追加
-        orders.forEach(order => {
-          const card = document.createElement('div');
-          card.className = `order ${order.status || 'new'}`;
-          
-          card.innerHTML = `
-            <strong>${order.dish}</strong>
-            ${order.note ? `<div>📝 ${order.note}</div>` : ''}
-            <div style="color:#666; font-size:12px;">${order.time} (${order.status})</div>
-          `;
-
-          const btns = document.createElement('div');
-          if (order.status === 'new') {
-            btns.innerHTML = `
-              <button class="accept">接单</button>
-              <button class="reject">今天没有</button>
-            `;
-            btns.querySelector('.accept').onclick = () => updateOrder(order.key, 'accepted');
-            btns.querySelector('.reject').onclick = () => updateOrder(order.key, 'rejected');
-          } else if (order.status === 'accepted') {
-            btns.innerHTML = `<button class="done">做好了</button>`;
-            btns.querySelector('.done').onclick = () => updateOrder(order.key, 'done');
-          } else {
-            btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
-          }
-          
-          card.appendChild(btns);
-          listDiv.appendChild(card);
-        });
-      }).catch(err => {
-        listDiv.textContent = '连接失败：' + err.message;
-      });
     }
 
-    // 立即执行一次
+    // 轮询 + 新订单语音提示
+    let prevCount = 0;
+    setInterval(() => {
+        db.ref('orders').once('value', snap => {
+            const count = snap.numChildren();
+            if (count > prevCount) {
+                playSound();
+                if ('speechSynthesis' in window) {
+                    const latest = [];
+                    snap.forEach(c => latest.push(c.val()));
+                    const last = latest[latest.length-1];
+                    if (last && last.status === 'new') {
+                        const u = new SpeechSynthesisUtterance('新订单：' + last.dish);
+                        u.lang = 'zh-CN'; window.speechSynthesis.speak(u);
+                    }
+                }
+            }
+            prevCount = count;
+            fetchOrders();
+        });
+    }, 5000);
+
+    // 立即执行
     fetchOrders();
-    // 每 5 秒自动刷新
-    setInterval(fetchOrders, 5000);
-  </script>
+
+    document.getElementById('clear-local').onclick = () => {
+        db.ref('orders').once('value', snapshot => {
+            const toHide = [];
+            snapshot.forEach(c => {
+                if (c.val().status === 'done' || c.val().status === 'rejected') toHide.push(c.key);
+            });
+            if (!toHide.length) return alert('没有可隐藏的订单');
+            addHidden(toHide);
+            fetchOrders();
+            alert('已隐藏');
+        });
+    };
+
+    document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
+</script>
 </body>
 </html>
