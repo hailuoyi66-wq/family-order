@@ -7,20 +7,18 @@
   <style>
     body { font-family: sans-serif; background: #eef5ff; padding: 20px; }
     h2 { color: #1e40af; }
-    .status { margin: 10px 0; font-size: 14px; }
-    .success { color: #10b981; }
-    .error { color: #ef4444; }
     .order { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; border-left: 4px solid #f59e0b; }
     .order.accepted { border-left-color: #2563eb; }
     .order.done { border-left-color: #10b981; }
     .order.rejected { border-left-color: #ef4444; }
     button { margin-right: 6px; padding: 6px 12px; border-radius: 14px; border: none; color: white; }
     .accept { background: #2563eb; } .reject { background: #ef4444; } .done { background: #10b981; }
+    .refresh-btn { background: #64748b; color: white; padding: 10px 20px; margin-bottom: 15px; }
   </style>
 </head>
 <body>
   <h2>📋 妈妈看单</h2>
-  <div id="status" class="status">⏳ 连接中...</div>
+  <button class="refresh-btn" onclick="location.reload()">🔄 手动刷新</button>
   <div id="list">暂无订单</div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -32,60 +30,68 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const listDiv = document.getElementById('list');
-    const statusDiv = document.getElementById('status');
 
-    function updateStatus(success, msg) {
-      statusDiv.textContent = msg;
-      statusDiv.className = 'status ' + (success ? 'success' : 'error');
+    function updateOrder(key, status) {
+      db.ref('orders/' + key).update({ status });
     }
 
     function fetchOrders() {
-      updateStatus(true, '⏳ 刷新中...');
       db.ref('orders').once('value', snapshot => {
+        // 清空列表
         listDiv.innerHTML = '';
+        
         if (!snapshot.exists()) {
           listDiv.textContent = '暂无订单';
-          updateStatus(true, '✅ 连接正常，暂无订单');
           return;
         }
+
+        // 收集所有订单到数组
         const orders = [];
-        snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+        snapshot.forEach(child => {
+          orders.push({ key: child.key, ...child.val() });
+        });
+        
+        // 按时间倒序排列
         orders.sort((a, b) => b.time.localeCompare(a.time));
+
+        // 逐个创建卡片并追加
         orders.forEach(order => {
           const card = document.createElement('div');
           card.className = `order ${order.status || 'new'}`;
+          
           card.innerHTML = `
             <strong>${order.dish}</strong>
             ${order.note ? `<div>📝 ${order.note}</div>` : ''}
-            <div style="color:#666; font-size:12px;">${order.time}</div>
+            <div style="color:#666; font-size:12px;">${order.time} (${order.status})</div>
           `;
+
           const btns = document.createElement('div');
           if (order.status === 'new') {
             btns.innerHTML = `
               <button class="accept">接单</button>
               <button class="reject">今天没有</button>
             `;
-            btns.querySelector('.accept').onclick = () => db.ref('orders/' + order.key).update({ status: 'accepted' });
-            btns.querySelector('.reject').onclick = () => db.ref('orders/' + order.key).update({ status: 'rejected' });
+            btns.querySelector('.accept').onclick = () => updateOrder(order.key, 'accepted');
+            btns.querySelector('.reject').onclick = () => updateOrder(order.key, 'rejected');
           } else if (order.status === 'accepted') {
             btns.innerHTML = `<button class="done">做好了</button>`;
-            btns.querySelector('.done').onclick = () => db.ref('orders/' + order.key).update({ status: 'done' });
+            btns.querySelector('.done').onclick = () => updateOrder(order.key, 'done');
           } else {
             btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
           }
+          
           card.appendChild(btns);
           listDiv.appendChild(card);
         });
-        updateStatus(true, '✅ 共 ' + snapshot.numChildren() + ' 条订单');
       }).catch(err => {
-        updateStatus(false, '❌ 连接失败：' + err.message);
+        listDiv.textContent = '连接失败：' + err.message;
       });
     }
 
     // 立即执行一次
     fetchOrders();
-    // 每 3 秒自动刷新
-    setInterval(fetchOrders, 3000);
+    // 每 5 秒自动刷新
+    setInterval(fetchOrders, 5000);
   </script>
 </body>
 </html>
