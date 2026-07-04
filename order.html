@@ -7,7 +7,6 @@
     <style>
         :root {
             --primary: #2563eb;
-            --primary-dark: #1d4ed8;
             --bg: #f0f4ff;
             --card-bg: rgba(255,255,255,0.9);
             --text: #1e293b;
@@ -154,9 +153,9 @@
     // Firebase 初始化
     firebase.initializeApp({ databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/" });
     const db = firebase.database();
-    const SENDKEY = "SCT374483TRJmfLLznNGdoB5JEpHFGn8ij";
+    const SENDKEY = "SCT374483TRJmfLLznNGdoB5JEpHFGn8ij"; // ✅ 已更新
 
-    // 静态分类基底（不含自定义）
+    // 静态分类基底
     const baseCategories = {
         meat: { title: "🥩 荤菜", items: [
             { name: "红烧排骨", emoji: "🍖" }, { name: "可乐鸡翅", emoji: "🍗" },
@@ -175,19 +174,18 @@
         ]}
     };
 
-    // 运行时菜单数据（菜品名 -> { qty, note }）
+    // 运行时菜单数据
     const menuData = {};
-    // 当前使用的完整分类（基底 + 自定义），每次渲染前重建
     let currentCategories = {};
 
-    // 初始化所有默认菜品的 menuData
+    // 初始化默认菜品数据
     for (let cat in baseCategories) {
         baseCategories[cat].items.forEach(d => {
             menuData[d.name] = { qty: 0, note: '' };
         });
     }
 
-    // 本地隐藏订单管理（A端独立）
+    // 本地隐藏订单管理
     function getHiddenOrders() {
         const stored = localStorage.getItem('a_hidden_orders');
         return stored ? JSON.parse(stored) : [];
@@ -198,7 +196,7 @@
         localStorage.setItem('a_hidden_orders', JSON.stringify(hidden));
     }
 
-    // 创建菜品卡片（dish: { name, emoji, isCustom, id }）
+    // 创建菜品卡片
     function createDishCard(dish) {
         const card = document.createElement('div');
         card.className = 'card';
@@ -215,7 +213,6 @@
             ${dish.isCustom ? `<button class="delete-custom-btn">🗑️ 删除自定义</button>` : ''}
         `;
 
-        // 确保 menuData 中存在该菜品
         if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
         const numSpan = card.querySelector('.qty-num');
         const noteInput = card.querySelector('.note-input');
@@ -234,7 +231,6 @@
         };
         noteInput.oninput = (e) => menuData[dish.name].note = e.target.value.trim();
 
-        // 自定义菜品的删除按钮
         if (dish.isCustom && dish.id) {
             card.querySelector('.delete-custom-btn').onclick = () => {
                 if (confirm('确定要从菜单中删除这道菜吗？')) {
@@ -248,19 +244,16 @@
         return card;
     }
 
-    // 重建整个菜单：从 Firebase 读取自定义菜品，与基底合并，然后渲染
+    // 重建整个菜单
     function rebuildMenu() {
         db.ref('custom_menu').once('value').then(snapshot => {
-            // 深拷贝基底分类
             currentCategories = JSON.parse(JSON.stringify(baseCategories));
-            // 确保所有基底菜品的 menuData 存在
             for (let cat in currentCategories) {
                 currentCategories[cat].items.forEach(d => {
                     if (!menuData[d.name]) menuData[d.name] = { qty: 0, note: '' };
                 });
             }
 
-            // 处理自定义菜品：根据 category 插入对应分类
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
                     const item = child.val();
@@ -272,15 +265,12 @@
                             isCustom: true,
                             id: item.id
                         });
-                        // 初始化 menuData
                         if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
                     }
                 });
             }
-
             renderMenu();
         }).catch(() => {
-            // 网络错误等，只显示基底
             currentCategories = JSON.parse(JSON.stringify(baseCategories));
             renderMenu();
         });
@@ -296,7 +286,6 @@
             titleDiv.id = 'cat-' + cat;
             titleDiv.textContent = currentCategories[cat].title;
             menuContainer.appendChild(titleDiv);
-
             currentCategories[cat].items.forEach(dish => {
                 menuContainer.appendChild(createDishCard(dish));
             });
@@ -372,9 +361,8 @@
         });
         Promise.all(promises).then(() => {
             showToast('已下单');
-            // 重置数量
             for (let k in menuData) { menuData[k].qty = 0; menuData[k].note = ''; }
-            rebuildMenu(); // 重新渲染以清零显示
+            rebuildMenu();
             // 微信推送
             if (SENDKEY && SENDKEY !== 'SCTxxxxxxxxxxxxx') {
                 const xhr = new XMLHttpRequest();
@@ -385,7 +373,7 @@
         });
     };
 
-    // 订单列表（本地隐藏）
+    // 订单列表
     const orderDiv = document.getElementById('order-list');
     let showOnlyActive = false;
 
@@ -436,7 +424,7 @@
         setTimeout(() => t.style.display = 'none', 2000);
     }
 
-    // 初始加载
+    // 初始化
     rebuildMenu();
 </script>
 </body>
