@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>妈妈看单</title>
+  <title>妈妈看单 - 诊断模式</title>
   <style>
     body { font-family: sans-serif; background: #eef5ff; padding: 20px; }
     h2 { color: #1e40af; }
-    .status { margin: 10px 0; font-size: 14px; color: #666; }
-    .status.success { color: #10b981; }
-    .status.error { color: #ef4444; }
+    .status { margin: 10px 0; font-size: 14px; }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 10px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
     .order { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; border-left: 4px solid #f59e0b; }
-    .order.accepted { border-left-color: #2563eb; }
-    .order.done { border-left-color: #10b981; }
-    .order.rejected { border-left-color: #ef4444; }
     button { margin-right: 6px; padding: 6px 12px; border-radius: 14px; border: none; color: white; }
-    .accept { background: #2563eb; }
-    .reject { background: #ef4444; }
-    .done { background: #10b981; }
+    .accept { background: #2563eb; } .reject { background: #ef4444; } .done { background: #10b981; }
     .refresh-btn { background: #64748b; color: white; padding: 10px 20px; margin-bottom: 15px; }
   </style>
 </head>
 <body>
-  <h2>📋 妈妈看单</h2>
-  <div id="status" class="status">⏳ 正在连接...</div>
+  <h2>📋 妈妈看单 (诊断版)</h2>
+  <div id="status" class="status">⏳ 正在连接…</div>
   <button class="refresh-btn" onclick="fetchOrders()">🔄 手动刷新</button>
+  
+  <h3>📦 数据库原始内容（所有订单）</h3>
+  <pre id="raw-data">暂无数据</pre>
+  
+  <h3>📋 订单卡片</h3>
   <div id="list">暂无订单</div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -37,78 +38,82 @@
     const db = firebase.database();
     const listDiv = document.getElementById('list');
     const statusDiv = document.getElementById('status');
-    let lastOrderKeys = []; // 记录上次显示的订单 key，避免闪烁
+    const rawDiv = document.getElementById('raw-data');
 
     function updateStatus(success, msg) {
       statusDiv.textContent = msg;
       statusDiv.className = 'status ' + (success ? 'success' : 'error');
     }
 
-    // 拉取所有订单并渲染
     function fetchOrders() {
       updateStatus(true, '⏳ 拉取中...');
       db.ref('orders').once('value', snapshot => {
-        if (!snapshot.exists()) {
-          listDiv.innerHTML = '暂无订单';
-          updateStatus(true, '✅ 连接正常，暂无订单');
-          return;
+        // 显示原始数据
+        if (snapshot.exists()) {
+          const raw = {};
+          snapshot.forEach(child => {
+            raw[child.key] = child.val();
+          });
+          rawDiv.textContent = JSON.stringify(raw, null, 2);
+        } else {
+          rawDiv.textContent = '数据库 orders 节点为空';
         }
-        const orders = [];
-        snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
-        orders.sort((a, b) => b.time.localeCompare(a.time));
-        renderAll(orders);
-        updateStatus(true, `✅ 连接正常，共 ${orders.length} 条订单`);
+
+        // 渲染卡片
+        renderOrders(snapshot);
+        updateStatus(true, '✅ 连接正常，共 ' + (snapshot.numChildren()) + ' 条订单');
       }).catch(err => {
         updateStatus(false, '❌ 连接失败：' + err.message);
+        rawDiv.textContent = '连接失败';
       });
     }
 
-    function renderAll(orders) {
+    function renderOrders(snapshot) {
       listDiv.innerHTML = '';
+      if (!snapshot.exists()) {
+        listDiv.textContent = '暂无订单';
+        return;
+      }
+      const orders = [];
+      snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+      orders.sort((a, b) => b.time.localeCompare(a.time));
+      
       orders.forEach(order => {
-        const card = createCard(order.key, order);
+        const card = document.createElement('div');
+        card.className = 'order ' + (order.status || 'new');
+        card.id = 'order-' + order.key;
+        card.innerHTML = `
+          <strong>${order.dish}</strong>
+          ${order.note ? `<div>📝 ${order.note}</div>` : ''}
+          <div style="color:#666; font-size:12px;">${order.time} (${order.status})</div>
+        `;
+        
+        const btns = document.createElement('div');
+        if (order.status === 'new') {
+          btns.innerHTML = `
+            <button class="accept">接单</button>
+            <button class="reject">今天没有</button>
+          `;
+          btns.querySelector('.accept').onclick = () => db.ref('orders/' + order.key).update({ status: 'accepted' });
+          btns.querySelector('.reject').onclick = () => db.ref('orders/' + order.key).update({ status: 'rejected' });
+        } else if (order.status === 'accepted') {
+          btns.innerHTML = `<button class="done">做好了</button>`;
+          btns.querySelector('.done').onclick = () => db.ref('orders/' + order.key).update({ status: 'done' });
+        } else {
+          btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
+        }
+        card.appendChild(btns);
         listDiv.appendChild(card);
       });
-      if (orders.length === 0) listDiv.innerHTML = '暂无订单';
     }
 
     function updateOrder(key, status) {
       db.ref('orders/' + key).update({ status });
     }
 
-    function createCard(key, order) {
-      const card = document.createElement('div');
-      card.className = `order ${order.status}`;
-      card.id = 'order-' + key;
-      card.innerHTML = `
-        <strong>${order.dish}</strong>
-        ${order.note ? `<div>📝 ${order.note}</div>` : ''}
-        <div style="color:#666; font-size:12px;">${order.time}</div>
-      `;
-
-      const btns = document.createElement('div');
-      if (order.status === 'new') {
-        btns.innerHTML = `
-          <button class="accept">接单</button>
-          <button class="reject">今天没有</button>
-        `;
-        btns.querySelector('.accept').onclick = () => updateOrder(key, 'accepted');
-        btns.querySelector('.reject').onclick = () => updateOrder(key, 'rejected');
-      } else if (order.status === 'accepted') {
-        btns.innerHTML = `<button class="done">做好了</button>`;
-        btns.querySelector('.done').onclick = () => updateOrder(key, 'done');
-      } else {
-        btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
-      }
-      card.appendChild(btns);
-      return card;
-    }
-
-    // 首次加载
+    // 首次加载 & 定时刷新
     fetchOrders();
-
-    // 每 3 秒自动刷新（保证实时性）
-    setInterval(fetchOrders, 3000);
+    setInterval(fetchOrders, 2000);
   </script>
 </body>
 </html>
