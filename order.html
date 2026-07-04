@@ -1,420 +1,419 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>我想吃的菜</title>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --bg: #f0f4ff;
-      --card-bg: rgba(255,255,255,0.9);
-      --text: #1e293b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(145deg, #eef2ff 0%, #e0eaff 100%);
-      min-height: 100vh; padding: 20px 16px 40px; color: var(--text);
-    }
-    .container { max-width: 450px; margin: 0 auto; }
-    .header h1 {
-      font-size: 28px; font-weight: 700;
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; text-align: center; margin-bottom: 16px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>我想吃的菜</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg: #f0f4ff;
+            --card-bg: rgba(255,255,255,0.9);
+            --text: #1e293b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #eef2ff 0%, #e0eaff 100%);
+            min-height: 100vh; padding: 20px 16px 40px; color: var(--text);
+        }
+        .container { max-width: 450px; margin: 0 auto; }
+        .header h1 {
+            font-size: 28px; font-weight: 700;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; text-align: center; margin-bottom: 16px;
+        }
 
-    /* 分类导航 */
-    .category-nav {
-      display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 12px;
-      scrollbar-width: none; -ms-overflow-style: none;
-      position: sticky; top: 0; background: rgba(240,244,255,0.8); backdrop-filter: blur(10px); z-index: 10;
-    }
-    .category-nav::-webkit-scrollbar { display: none; }
-    .nav-tag {
-      flex-shrink: 0; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;
-      background: rgba(255,255,255,0.7); color: #475569; cursor: pointer; transition: all 0.2s;
-      border: 1px solid rgba(255,255,255,0.8);
-    }
-    .nav-tag.active { background: var(--primary); color: white; border-color: var(--primary); }
+        /* 分类导航 */
+        .category-nav {
+            display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 12px;
+            scrollbar-width: none; -ms-overflow-style: none;
+            position: sticky; top: 0; background: rgba(240,244,255,0.8); backdrop-filter: blur(10px); z-index: 10;
+        }
+        .category-nav::-webkit-scrollbar { display: none; }
+        .nav-tag {
+            flex-shrink: 0; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;
+            background: rgba(255,255,255,0.7); color: #475569; cursor: pointer; transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        .nav-tag.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-    .category-title { font-size: 20px; font-weight: 700; color: #1e40af; margin: 20px 0 10px; }
-    .card {
-      background: var(--card-bg); backdrop-filter: blur(15px); border-radius: 20px;
-      padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-    }
-    .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .menu-name { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .emoji-icon { font-size: 24px; }
-    .qty-control { display: flex; align-items: center; gap: 6px; }
-    .qty-btn {
-      background: #f1f5f9; border: none; width: 34px; height: 34px; border-radius: 50%;
-      font-size: 18px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer;
-    }
-    .qty-num { font-size: 16px; min-width: 28px; text-align: center; font-weight: 600; }
-    .note-input {
-      width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 12px;
-      font-size: 14px; margin-top: 5px;
-    }
-    .btn {
-      border: none; border-radius: 30px; padding: 10px 18px; font-size: 14px; font-weight: 600;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-submit {
-      width: 100%; padding: 16px; font-size: 18px; font-weight: 700;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white;
-      border: none; border-radius: 30px; cursor: pointer; margin: 20px 0 24px;
-    }
-    .delete-custom-btn { color: #ef4444; background: none; border: none; font-size: 14px; cursor: pointer; margin-top: 5px; }
+        .category-title { font-size: 20px; font-weight: 700; color: #1e40af; margin: 20px 0 10px; }
+        .card {
+            background: var(--card-bg); backdrop-filter: blur(15px); border-radius: 20px;
+            padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+        }
+        .menu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .menu-name { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .emoji-icon { font-size: 24px; }
+        .qty-control { display: flex; align-items: center; gap: 6px; }
+        .qty-btn {
+            background: #f1f5f9; border: none; width: 34px; height: 34px; border-radius: 50%;
+            font-size: 18px; display: flex; align-items: center; justify-content: center; color: #334155; cursor: pointer;
+        }
+        .qty-num { font-size: 16px; min-width: 28px; text-align: center; font-weight: 600; }
+        .note-input {
+            width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 12px;
+            font-size: 14px; margin-top: 5px; background: rgba(255,255,255,0.6);
+        }
+        .btn {
+            border: none; border-radius: 30px; padding: 10px 18px; font-size: 14px; font-weight: 600;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-submit {
+            width: 100%; padding: 16px; font-size: 18px; font-weight: 700;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white;
+            border: none; border-radius: 30px; cursor: pointer; margin: 20px 0 24px;
+        }
+        .delete-custom-btn { color: #ef4444; background: none; border: none; font-size: 14px; cursor: pointer; margin-top: 5px; }
 
-    #toast {
-      position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
-      background: #1e293b; color: white; padding: 12px 28px; border-radius: 30px;
-      display: none; z-index: 9999;
-    }
+        #toast {
+            position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 12px 28px; border-radius: 30px;
+            display: none; z-index: 9999;
+        }
 
-    .order-item {
-      background: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
-      display: flex; justify-content: space-between; border-left: 4px solid #cbd5e1;
-    }
-    .order-item.status-new { border-left-color: #f59e0b; }
-    .order-item.status-accepted { border-left-color: #2563eb; }
-    .order-item.status-rejected { border-left-color: #ef4444; }
-    .order-item.status-done { border-left-color: #10b981; }
-    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; color: white; }
-    .status-new .status-badge { background: #f59e0b; }
-    .status-accepted .status-badge { background: #2563eb; }
-    .status-rejected .status-badge { background: #ef4444; }
-    .status-done .status-badge { background: #10b981; }
+        .order-item {
+            background: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; border-left: 4px solid #cbd5e1;
+        }
+        .order-item.status-new { border-left-color: #f59e0b; }
+        .order-item.status-accepted { border-left-color: #2563eb; }
+        .order-item.status-rejected { border-left-color: #ef4444; }
+        .order-item.status-done { border-left-color: #10b981; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; color: white; }
+        .status-new .status-badge { background: #f59e0b; }
+        .status-accepted .status-badge { background: #2563eb; }
+        .status-rejected .status-badge { background: #ef4444; }
+        .status-done .status-badge { background: #10b981; }
 
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
-      z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s;
-    }
-    .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal { background: white; border-radius: 24px; padding: 24px; width: 85%; max-width: 380px; }
-  </style>
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+            z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal { background: white; border-radius: 24px; padding: 24px; width: 85%; max-width: 380px; }
+    </style>
 </head>
 <body>
 <div class="container">
-  <div class="header"><h1>🛒 今天想吃什么？</h1></div>
+    <div class="header"><h1>🛒 今天想吃什么？</h1></div>
 
-  <!-- 分类导航 -->
-  <div class="category-nav" id="category-nav">
-    <div class="nav-tag active" data-cat="meat">🥩 荤菜</div>
-    <div class="nav-tag" data-cat="veggie">🥬 素菜</div>
-    <div class="nav-tag" data-cat="soup">🍲 汤羹</div>
-    <div class="nav-tag" data-cat="custom">✨ 自定义</div>
-  </div>
-
-  <div id="menu-container"></div>
-
-  <div class="card">
-    <div style="font-weight:600; margin-bottom:12px; color:#1e40af;">✏️ 添加自定义菜品</div>
-    <div style="display:flex; gap:8px;">
-      <input type="text" id="new-custom-name" placeholder="菜名" style="flex:2;">
-      <select id="new-custom-category" style="flex:1; padding:10px; border-radius:12px; border:1px solid #e2e8f0;">
-        <option value="meat">🥩 荤菜</option>
-        <option value="veggie">🥬 素菜</option>
-        <option value="soup">🍲 汤羹/其他</option>
-      </select>
-      <button class="btn btn-primary" id="add-custom-btn">➕ 添加</button>
+    <!-- 分类导航 -->
+    <div class="category-nav" id="category-nav">
+        <div class="nav-tag active" data-cat="meat">🥩 荤菜</div>
+        <div class="nav-tag" data-cat="veggie">🥬 素菜</div>
+        <div class="nav-tag" data-cat="soup">🍲 汤羹</div>
+        <div class="nav-tag" data-cat="custom">✨ 自定义</div>
     </div>
-  </div>
 
-  <button class="btn-submit" id="submit-all">🚀 一键下单</button>
+    <div id="menu-container"></div>
 
-  <div style="margin-top:24px;">
-    <h3 style="color:#1e40af;">📋 我的订单</h3>
-    <div id="order-list">暂无订单</div>
-    <button id="toggle-filter" style="width:100%; margin-top:12px; padding:12px; border-radius:14px; background:#f1f5f9;">📜 只显示进行中</button>
-    <button id="clear-local" style="width:100%; margin-top:8px; padding:12px; border-radius:14px; background:#f1f5f9;">🧹 隐藏已完成/已拒绝（仅本机）</button>
-  </div>
+    <div class="card">
+        <div style="font-weight:600; margin-bottom:12px; color:#1e40af;">✏️ 添加自定义菜品</div>
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="new-custom-name" placeholder="菜名" style="flex:2;">
+            <select id="new-custom-category" style="flex:1; padding:10px; border-radius:12px; border:1px solid #e2e8f0;">
+                <option value="meat">🥩 荤菜</option>
+                <option value="veggie">🥬 素菜</option>
+                <option value="soup">🍲 汤羹/其他</option>
+            </select>
+            <button class="btn btn-primary" id="add-custom-btn">➕ 添加</button>
+        </div>
+    </div>
+
+    <button class="btn-submit" id="submit-all">🚀 一键下单</button>
+
+    <div style="margin-top:24px;">
+        <h3 style="color:#1e40af;">📋 我的订单</h3>
+        <div id="order-list">暂无订单</div>
+        <button id="toggle-filter" style="width:100%; margin-top:12px; padding:12px; border-radius:14px; background:#f1f5f9;">📜 只显示进行中</button>
+        <button id="clear-local" style="width:100%; margin-top:8px; padding:12px; border-radius:14px; background:#f1f5f9;">🧹 隐藏已完成/已拒绝（仅本机）</button>
+    </div>
 </div>
 
 <div id="toast"></div>
 
 <div class="modal-overlay" id="confirm-modal">
-  <div class="modal">
-    <h3>确认下单</h3>
-    <div id="modal-content"></div>
-    <div style="display:flex; gap:10px; margin-top:20px;">
-      <button class="btn" style="flex:1; background:#f1f5f9;" id="modal-cancel">取消</button>
-      <button class="btn btn-primary" style="flex:1;" id="modal-confirm">确认下单</button>
+    <div class="modal">
+        <h3>确认下单</h3>
+        <div id="modal-content"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn" style="flex:1; background:#f1f5f9;" id="modal-cancel">取消</button>
+            <button class="btn btn-primary" style="flex:1;" id="modal-confirm">确认下单</button>
+        </div>
     </div>
-  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-  // Firebase 初始化
-  firebase.initializeApp({ databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/" });
-  const db = firebase.database();
-  const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
+    // Firebase 初始化
+    firebase.initializeApp({ databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/" });
+    const db = firebase.database();
+    const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
-  // 静态分类
-  const categories = {
-    meat: { title: "🥩 荤菜", items: [
-      { name: "红烧排骨", emoji: "🍖" }, { name: "可乐鸡翅", emoji: "🍗" },
-      { name: "红烧猪脚", emoji: "🐷" }, { name: "鱼香肉丝", emoji: "🐟" },
-      { name: "宫保鸡丁", emoji: "🥜" }, { name: "回锅肉", emoji: "🥓" },
-      { name: "青椒肉丝", emoji: "🫑" }
-    ]},
-    veggie: { title: "🥬 素菜", items: [
-      { name: "番茄炒蛋", emoji: "🍅" }, { name: "酸辣土豆丝", emoji: "🥔" },
-      { name: "玉米炒火腿", emoji: "🌽" }, { name: "地三鲜", emoji: "🍆" },
-      { name: "麻婆豆腐", emoji: "🧈" }, { name: "蒜蓉西兰花", emoji: "🥦" },
-      { name: "干煸豆角", emoji: "🫘" }
-    ]},
-    soup: { title: "🍲 汤羹/其他", items: [
-      { name: "紫菜蛋花汤", emoji: "🍲" }
-    ]}
-  };
-
-  // 运行时数据
-  const menuData = {};   // { dishName: { qty, note } }
-  let customItems = [];   // 从 Firebase 加载的自定义菜品
-
-  // 初始化默认数据
-  for (let cat in categories) {
-    categories[cat].items.forEach(d => menuData[d.name] = { qty: 0, note: '' });
-  }
-
-  // ========== 本地隐藏订单管理 ==========
-  function getHiddenOrders() {
-    const stored = localStorage.getItem('a_hidden_orders');
-    return stored ? JSON.parse(stored) : [];
-  }
-  function hideOrders(keys) {
-    const hidden = getHiddenOrders();
-    keys.forEach(k => { if (!hidden.includes(k)) hidden.push(k); });
-    localStorage.setItem('a_hidden_orders', JSON.stringify(hidden));
-  }
-
-  // ========== 渲染 ==========
-  const menuContainer = document.getElementById('menu-container');
-  function createDishCard(dish, isCustom = false, customId = null) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="menu-row">
-        <span class="menu-name"><span class="emoji-icon">${dish.emoji || '🍽️'}</span>${dish.name}</span>
-        <div class="qty-control">
-          <button class="qty-btn minus-btn">−</button>
-          <span class="qty-num">0</span>
-          <button class="qty-btn plus-btn">+</button>
-        </div>
-      </div>
-      <input type="text" class="note-input" placeholder="备注">
-      ${isCustom ? `<button class="delete-custom-btn">🗑️ 删除自定义</button>` : ''}
-    `;
-
-    if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
-    const numSpan = card.querySelector('.qty-num');
-    const noteInput = card.querySelector('.note-input');
-    numSpan.textContent = menuData[dish.name].qty;
-    noteInput.value = menuData[dish.name].note || '';
-
-    card.querySelector('.minus-btn').onclick = () => {
-      if (menuData[dish.name].qty > 0) {
-        menuData[dish.name].qty--;
-        numSpan.textContent = menuData[dish.name].qty;
-      }
-    };
-    card.querySelector('.plus-btn').onclick = () => {
-      menuData[dish.name].qty++;
-      numSpan.textContent = menuData[dish.name].qty;
-    };
-    noteInput.oninput = (e) => menuData[dish.name].note = e.target.value.trim();
-
-    if (isCustom && customId) {
-      card.querySelector('.delete-custom-btn').onclick = () => {
-        if (confirm('确定删除这道自定义菜吗？')) {
-          db.ref('custom_menu/' + customId).remove().then(() => {
-            showToast('已删除');
-            loadCustomMenu();
-          });
-        }
-      };
-    }
-    return card;
-  }
-
-  function renderMenu() {
-    menuContainer.innerHTML = '';
     // 静态分类
-    for (let cat of ['meat', 'veggie', 'soup']) {
-      const titleDiv = document.createElement('div');
-      titleDiv.className = 'category-title';
-      titleDiv.id = 'cat-' + cat;
-      titleDiv.textContent = categories[cat].title;
-      menuContainer.appendChild(titleDiv);
-      categories[cat].items.forEach(dish => menuContainer.appendChild(createDishCard(dish, false)));
+    const categories = {
+        meat: { title: "🥩 荤菜", items: [
+            { name: "红烧排骨", emoji: "🍖" }, { name: "可乐鸡翅", emoji: "🍗" },
+            { name: "红烧猪脚", emoji: "🐷" }, { name: "鱼香肉丝", emoji: "🐟" },
+            { name: "宫保鸡丁", emoji: "🥜" }, { name: "回锅肉", emoji: "🥓" },
+            { name: "青椒肉丝", emoji: "🫑" }
+        ]},
+        veggie: { title: "🥬 素菜", items: [
+            { name: "番茄炒蛋", emoji: "🍅" }, { name: "酸辣土豆丝", emoji: "🥔" },
+            { name: "玉米炒火腿", emoji: "🌽" }, { name: "地三鲜", emoji: "🍆" },
+            { name: "麻婆豆腐", emoji: "🧈" }, { name: "蒜蓉西兰花", emoji: "🥦" },
+            { name: "干煸豆角", emoji: "🫘" }
+        ]},
+        soup: { title: "🍲 汤羹/其他", items: [
+            { name: "紫菜蛋花汤", emoji: "🍲" }
+        ]}
+    };
+
+    // 运行时数据
+    const menuData = {};   // { dishName: { qty, note } }
+    let customItems = [];   // 从 Firebase 加载的自定义菜品
+
+    // 初始化默认数据
+    for (let cat in categories) {
+        categories[cat].items.forEach(d => menuData[d.name] = { qty: 0, note: '' });
     }
-    // 自定义分类
-    if (customItems.length > 0) {
-      const customTitle = document.createElement('div');
-      customTitle.className = 'category-title';
-      customTitle.id = 'cat-custom';
-      customTitle.textContent = '✨ 自定义';
-      menuContainer.appendChild(customTitle);
-      customItems.forEach(item => {
-        menuContainer.appendChild(createDishCard(
-          { name: item.name, emoji: item.emoji || '🍽️' }, true, item.id
-        ));
-      });
+
+    // 本地隐藏订单管理（A端独立）
+    function getHiddenOrders() {
+        const stored = localStorage.getItem('a_hidden_orders');
+        return stored ? JSON.parse(stored) : [];
     }
-  }
-
-  // 加载自定义菜单
-  function loadCustomMenu() {
-    db.ref('custom_menu').once('value').then(snapshot => {
-      customItems = [];
-      if (snapshot.exists()) {
-        snapshot.forEach(child => customItems.push(child.val()));
-      }
-      // 为自定义菜品初始化 menuData
-      customItems.forEach(item => {
-        if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
-      });
-      renderMenu();
-    }).catch(() => renderMenu());
-  }
-
-  // 分类导航点击滚动
-  document.getElementById('category-nav').addEventListener('click', (e) => {
-    if (e.target.classList.contains('nav-tag')) {
-      const cat = e.target.dataset.cat;
-      const target = document.getElementById('cat-' + cat);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      document.querySelectorAll('.nav-tag').forEach(t => t.classList.remove('active'));
-      e.target.classList.add('active');
+    function hideOrders(keys) {
+        const hidden = getHiddenOrders();
+        keys.forEach(k => { if (!hidden.includes(k)) hidden.push(k); });
+        localStorage.setItem('a_hidden_orders', JSON.stringify(hidden));
     }
-  });
 
-  // 添加自定义菜品
-  document.getElementById('add-custom-btn').onclick = () => {
-    const name = document.getElementById('new-custom-name').value.trim();
-    if (!name) return showToast('请输入菜名');
-    const category = document.getElementById('new-custom-category').value;
-    const ref = db.ref('custom_menu').push();
-    ref.set({ id: ref.key, name, category, emoji: '🍽️' }).then(() => {
-      document.getElementById('new-custom-name').value = '';
-      showToast('已添加');
-      loadCustomMenu();
-    });
-  };
+    // 渲染菜单
+    const menuContainer = document.getElementById('menu-container');
+    function createDishCard(dish, isCustom = false, customId = null) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="menu-row">
+                <span class="menu-name"><span class="emoji-icon">${dish.emoji || '🍽️'}</span>${dish.name}</span>
+                <div class="qty-control">
+                    <button class="qty-btn minus-btn">−</button>
+                    <span class="qty-num">0</span>
+                    <button class="qty-btn plus-btn">+</button>
+                </div>
+            </div>
+            <input type="text" class="note-input" placeholder="备注">
+            ${isCustom ? `<button class="delete-custom-btn">🗑️ 删除自定义</button>` : ''}
+        `;
 
-  // ========== 下单 ==========
-  function collectItems() {
-    const items = [];
-    for (let name in menuData) {
-      if (menuData[name].qty > 0) items.push({ name, qty: menuData[name].qty, note: menuData[name].note });
+        if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
+        const numSpan = card.querySelector('.qty-num');
+        const noteInput = card.querySelector('.note-input');
+        numSpan.textContent = menuData[dish.name].qty;
+        noteInput.value = menuData[dish.name].note || '';
+
+        card.querySelector('.minus-btn').onclick = () => {
+            if (menuData[dish.name].qty > 0) {
+                menuData[dish.name].qty--;
+                numSpan.textContent = menuData[dish.name].qty;
+            }
+        };
+        card.querySelector('.plus-btn').onclick = () => {
+            menuData[dish.name].qty++;
+            numSpan.textContent = menuData[dish.name].qty;
+        };
+        noteInput.oninput = (e) => menuData[dish.name].note = e.target.value.trim();
+
+        if (isCustom && customId) {
+            card.querySelector('.delete-custom-btn').onclick = () => {
+                if (confirm('确定删除这道自定义菜吗？')) {
+                    db.ref('custom_menu/' + customId).remove().then(() => {
+                        showToast('已删除');
+                        loadCustomMenu();
+                    });
+                }
+            };
+        }
+        return card;
     }
-    return items;
-  }
 
-  function showModal(items) {
-    document.getElementById('modal-content').innerHTML = items.map(i =>
-      `<div><strong>${i.name}</strong> ×${i.qty} ${i.note ? '(备注:'+i.note+')' : ''}</div>`
-    ).join('');
-    document.getElementById('confirm-modal').classList.add('active');
-  }
+    function renderMenu() {
+        menuContainer.innerHTML = '';
+        // 静态分类
+        for (let cat of ['meat', 'veggie', 'soup']) {
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'category-title';
+            titleDiv.id = 'cat-' + cat;
+            titleDiv.textContent = categories[cat].title;
+            menuContainer.appendChild(titleDiv);
+            categories[cat].items.forEach(dish => menuContainer.appendChild(createDishCard(dish, false)));
+        }
+        // 自定义分类
+        if (customItems.length > 0) {
+            const customTitle = document.createElement('div');
+            customTitle.className = 'category-title';
+            customTitle.id = 'cat-custom';
+            customTitle.textContent = '✨ 自定义';
+            menuContainer.appendChild(customTitle);
+            customItems.forEach(item => {
+                menuContainer.appendChild(createDishCard(
+                    { name: item.name, emoji: item.emoji || '🍽️' }, true, item.id
+                ));
+            });
+        }
+    }
 
-  document.getElementById('submit-all').onclick = () => {
-    const items = collectItems();
-    if (!items.length) return showToast('请选菜');
-    showModal(items);
-  };
-  document.getElementById('modal-cancel').onclick = () => document.getElementById('confirm-modal').classList.remove('active');
-  document.getElementById('modal-confirm').onclick = () => {
-    document.getElementById('confirm-modal').classList.remove('active');
-    const items = collectItems();
-    const promises = [];
-    const summary = [];
-    items.forEach(item => {
-      summary.push(`${item.name} ×${item.qty}${item.note ? ' ('+item.note+')' : ''}`);
-      for (let i = 0; i < item.qty; i++) {
-        promises.push(db.ref('orders').push({
-          dish: item.name,
-          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-          status: 'new',
-          note: item.note
-        }));
-      }
+    // 加载自定义菜单
+    function loadCustomMenu() {
+        db.ref('custom_menu').once('value').then(snapshot => {
+            customItems = [];
+            if (snapshot.exists()) {
+                snapshot.forEach(child => customItems.push(child.val()));
+            }
+            customItems.forEach(item => {
+                if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
+            });
+            renderMenu();
+        }).catch(() => renderMenu());
+    }
+
+    // 分类导航点击
+    document.getElementById('category-nav').addEventListener('click', (e) => {
+        if (e.target.classList.contains('nav-tag')) {
+            const cat = e.target.dataset.cat;
+            const target = document.getElementById('cat-' + cat);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.querySelectorAll('.nav-tag').forEach(t => t.classList.remove('active'));
+            e.target.classList.add('active');
+        }
     });
-    Promise.all(promises).then(() => {
-      showToast('已下单');
-      // 重置数量
-      for (let k in menuData) { menuData[k].qty = 0; menuData[k].note = ''; }
-      renderMenu();
-      // 微信推送
-      if (SENDKEY && SENDKEY !== 'SCTxxxxxxxxxxxxx') {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://sctapi.ftqq.com/${SENDKEY}.send`);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.send(`title=🍽️新订单&desp=${encodeURIComponent(summary.join('\n'))}`);
-      }
-    });
-  };
 
-  // ========== 订单列表（本地隐藏） ==========
-  const orderDiv = document.getElementById('order-list');
-  let showOnlyActive = false;
+    // 添加自定义菜品
+    document.getElementById('add-custom-btn').onclick = () => {
+        const name = document.getElementById('new-custom-name').value.trim();
+        if (!name) return showToast('请输入菜名');
+        const category = document.getElementById('new-custom-category').value;
+        const ref = db.ref('custom_menu').push();
+        ref.set({ id: ref.key, name, category, emoji: '🍽️' }).then(() => {
+            document.getElementById('new-custom-name').value = '';
+            showToast('已添加');
+            loadCustomMenu();
+        });
+    };
 
-  function renderOrders(snapshot) {
-    orderDiv.innerHTML = '';
-    if (!snapshot.exists()) return orderDiv.textContent = '暂无订单';
-    const hidden = getHiddenOrders();
-    const orders = [];
-    snapshot.forEach(c => { if (!hidden.includes(c.key)) orders.push({ id: c.key, ...c.val() }); });
-    if (!orders.length) return orderDiv.textContent = '暂无订单';
-    orders.sort((a, b) => b.time.localeCompare(a.time));
-    orders.forEach(o => {
-      if (showOnlyActive && (o.status === 'done' || o.status === 'rejected')) return;
-      const div = document.createElement('div');
-      div.className = `order-item status-${o.status}`;
-      div.innerHTML = `
-        <div><strong>${o.dish}</strong>${o.note ? `<div>📝${o.note}</div>`:''}<div style="color:#94a3b8">${o.time}</div></div>
-        <span class="status-badge">${{new:'⏳等待',accepted:'👩‍🍳已接',rejected:'❌没有',done:'✅完成'}[o.status]}</span>
-      `;
-      orderDiv.appendChild(div);
-    });
-  }
+    // 下单逻辑
+    function collectItems() {
+        const items = [];
+        for (let name in menuData) {
+            if (menuData[name].qty > 0) items.push({ name, qty: menuData[name].qty, note: menuData[name].note });
+        }
+        return items;
+    }
 
-  db.ref('orders').on('value', renderOrders);
+    function showModal(items) {
+        document.getElementById('modal-content').innerHTML = items.map(i =>
+            `<div><strong>${i.name}</strong> ×${i.qty} ${i.note ? '(备注:'+i.note+')' : ''}</div>`
+        ).join('');
+        document.getElementById('confirm-modal').classList.add('active');
+    }
 
-  document.getElementById('toggle-filter').onclick = function() {
-    showOnlyActive = !showOnlyActive;
-    this.textContent = showOnlyActive ? '📋 显示全部' : '📜 只显示进行中';
-    db.ref('orders').once('value', renderOrders);
-  };
+    document.getElementById('submit-all').onclick = () => {
+        const items = collectItems();
+        if (!items.length) return showToast('请选菜');
+        showModal(items);
+    };
+    document.getElementById('modal-cancel').onclick = () => document.getElementById('confirm-modal').classList.remove('active');
+    document.getElementById('modal-confirm').onclick = () => {
+        document.getElementById('confirm-modal').classList.remove('active');
+        const items = collectItems();
+        const promises = [];
+        const summary = [];
+        items.forEach(item => {
+            summary.push(`${item.name} ×${item.qty}${item.note ? ' ('+item.note+')' : ''}`);
+            for (let i = 0; i < item.qty; i++) {
+                promises.push(db.ref('orders').push({
+                    dish: item.name,
+                    time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+                    status: 'new',
+                    note: item.note
+                }));
+            }
+        });
+        Promise.all(promises).then(() => {
+            showToast('已下单');
+            for (let k in menuData) { menuData[k].qty = 0; menuData[k].note = ''; }
+            renderMenu();
+            // 微信推送
+            if (SENDKEY && SENDKEY !== 'SCTxxxxxxxxxxxxx') {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://sctapi.ftqq.com/${SENDKEY}.send`);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.send(`title=🍽️新订单&desp=${encodeURIComponent(summary.join('\n'))}`);
+            }
+        });
+    };
 
-  document.getElementById('clear-local').onclick = () => {
-    db.ref('orders').once('value', snapshot => {
-      const keysToHide = [];
-      snapshot.forEach(c => {
-        if (c.val().status === 'done' || c.val().status === 'rejected') keysToHide.push(c.key);
-      });
-      if (!keysToHide.length) return showToast('没有可隐藏的订单');
-      hideOrders(keysToHide);
-      showToast('已隐藏');
-      db.ref('orders').once('value', renderOrders);
-    });
-  };
+    // 订单列表（本地隐藏）
+    const orderDiv = document.getElementById('order-list');
+    let showOnlyActive = false;
 
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 2000);
-  }
+    function renderOrders(snapshot) {
+        orderDiv.innerHTML = '';
+        if (!snapshot.exists()) return orderDiv.textContent = '暂无订单';
+        const hidden = getHiddenOrders();
+        const orders = [];
+        snapshot.forEach(c => { if (!hidden.includes(c.key)) orders.push({ id: c.key, ...c.val() }); });
+        if (!orders.length) return orderDiv.textContent = '暂无订单';
+        orders.sort((a, b) => b.time.localeCompare(a.time));
+        orders.forEach(o => {
+            if (showOnlyActive && (o.status === 'done' || o.status === 'rejected')) return;
+            const div = document.createElement('div');
+            div.className = `order-item status-${o.status}`;
+            div.innerHTML = `
+                <div><strong>${o.dish}</strong>${o.note ? `<div>📝${o.note}</div>`:''}<div style="color:#94a3b8">${o.time}</div></div>
+                <span class="status-badge">${{new:'⏳等待',accepted:'👩‍🍳已接',rejected:'❌没有',done:'✅完成'}[o.status]}</span>
+            `;
+            orderDiv.appendChild(div);
+        });
+    }
 
-  // 初始化
-  loadCustomMenu();
+    db.ref('orders').on('value', renderOrders);
+
+    document.getElementById('toggle-filter').onclick = function() {
+        showOnlyActive = !showOnlyActive;
+        this.textContent = showOnlyActive ? '📋 显示全部' : '📜 只显示进行中';
+        db.ref('orders').once('value', renderOrders);
+    };
+
+    document.getElementById('clear-local').onclick = () => {
+        db.ref('orders').once('value', snapshot => {
+            const keysToHide = [];
+            snapshot.forEach(c => {
+                if (c.val().status === 'done' || c.val().status === 'rejected') keysToHide.push(c.key);
+            });
+            if (!keysToHide.length) return showToast('没有可隐藏的订单');
+            hideOrders(keysToHide);
+            showToast('已隐藏');
+            db.ref('orders').once('value', renderOrders);
+        });
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2000);
+    }
+
+    // 初始化
+    loadCustomMenu();
 </script>
 </body>
 </html>
