@@ -108,7 +108,6 @@
         <div class="nav-tag active" data-cat="meat">🥩 荤菜</div>
         <div class="nav-tag" data-cat="veggie">🥬 素菜</div>
         <div class="nav-tag" data-cat="soup">🍲 汤羹</div>
-        <div class="nav-tag" data-cat="custom">✨ 自定义</div>
     </div>
 
     <div id="menu-container"></div>
@@ -157,8 +156,8 @@
     const db = firebase.database();
     const SENDKEY = "SCT374453T20ILwoLTxUBmaj7kw17ItcBZ";
 
-    // 静态分类
-    const categories = {
+    // 静态分类基底（不含自定义）
+    const baseCategories = {
         meat: { title: "🥩 荤菜", items: [
             { name: "红烧排骨", emoji: "🍖" }, { name: "可乐鸡翅", emoji: "🍗" },
             { name: "红烧猪脚", emoji: "🐷" }, { name: "鱼香肉丝", emoji: "🐟" },
@@ -176,13 +175,16 @@
         ]}
     };
 
-    // 运行时数据
-    const menuData = {};   // { dishName: { qty, note } }
-    let customItems = [];   // 从 Firebase 加载的自定义菜品
+    // 运行时菜单数据（菜品名 -> { qty, note }）
+    const menuData = {};
+    // 当前使用的完整分类（基底 + 自定义），每次渲染前重建
+    let currentCategories = {};
 
-    // 初始化默认数据
-    for (let cat in categories) {
-        categories[cat].items.forEach(d => menuData[d.name] = { qty: 0, note: '' });
+    // 初始化所有默认菜品的 menuData
+    for (let cat in baseCategories) {
+        baseCategories[cat].items.forEach(d => {
+            menuData[d.name] = { qty: 0, note: '' };
+        });
     }
 
     // 本地隐藏订单管理（A端独立）
@@ -196,9 +198,8 @@
         localStorage.setItem('a_hidden_orders', JSON.stringify(hidden));
     }
 
-    // 渲染菜单
-    const menuContainer = document.getElementById('menu-container');
-    function createDishCard(dish, isCustom = false, customId = null) {
+    // 创建菜品卡片（dish: { name, emoji, isCustom, id }）
+    function createDishCard(dish) {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -211,9 +212,10 @@
                 </div>
             </div>
             <input type="text" class="note-input" placeholder="备注">
-            ${isCustom ? `<button class="delete-custom-btn">🗑️ 删除自定义</button>` : ''}
+            ${dish.isCustom ? `<button class="delete-custom-btn">🗑️ 删除自定义</button>` : ''}
         `;
 
+        // 确保 menuData 中存在该菜品
         if (!menuData[dish.name]) menuData[dish.name] = { qty: 0, note: '' };
         const numSpan = card.querySelector('.qty-num');
         const noteInput = card.querySelector('.note-input');
@@ -232,12 +234,13 @@
         };
         noteInput.oninput = (e) => menuData[dish.name].note = e.target.value.trim();
 
-        if (isCustom && customId) {
+        // 自定义菜品的删除按钮
+        if (dish.isCustom && dish.id) {
             card.querySelector('.delete-custom-btn').onclick = () => {
-                if (confirm('确定删除这道自定义菜吗？')) {
-                    db.ref('custom_menu/' + customId).remove().then(() => {
+                if (confirm('确定要从菜单中删除这道菜吗？')) {
+                    db.ref('custom_menu/' + dish.id).remove().then(() => {
                         showToast('已删除');
-                        loadCustomMenu();
+                        rebuildMenu();
                     });
                 }
             };
@@ -245,44 +248,59 @@
         return card;
     }
 
+    // 重建整个菜单：从 Firebase 读取自定义菜品，与基底合并，然后渲染
+    function rebuildMenu() {
+        db.ref('custom_menu').once('value').then(snapshot => {
+            // 深拷贝基底分类
+            currentCategories = JSON.parse(JSON.stringify(baseCategories));
+            // 确保所有基底菜品的 menuData 存在
+            for (let cat in currentCategories) {
+                currentCategories[cat].items.forEach(d => {
+                    if (!menuData[d.name]) menuData[d.name] = { qty: 0, note: '' };
+                });
+            }
+
+            // 处理自定义菜品：根据 category 插入对应分类
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const item = child.val();
+                    const cat = item.category || 'meat';
+                    if (currentCategories[cat]) {
+                        currentCategories[cat].items.push({
+                            name: item.name,
+                            emoji: item.emoji || '🍽️',
+                            isCustom: true,
+                            id: item.id
+                        });
+                        // 初始化 menuData
+                        if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
+                    }
+                });
+            }
+
+            renderMenu();
+        }).catch(() => {
+            // 网络错误等，只显示基底
+            currentCategories = JSON.parse(JSON.stringify(baseCategories));
+            renderMenu();
+        });
+    }
+
+    const menuContainer = document.getElementById('menu-container');
     function renderMenu() {
         menuContainer.innerHTML = '';
-        // 静态分类
         for (let cat of ['meat', 'veggie', 'soup']) {
+            if (!currentCategories[cat] || currentCategories[cat].items.length === 0) continue;
             const titleDiv = document.createElement('div');
             titleDiv.className = 'category-title';
             titleDiv.id = 'cat-' + cat;
-            titleDiv.textContent = categories[cat].title;
+            titleDiv.textContent = currentCategories[cat].title;
             menuContainer.appendChild(titleDiv);
-            categories[cat].items.forEach(dish => menuContainer.appendChild(createDishCard(dish, false)));
-        }
-        // 自定义分类
-        if (customItems.length > 0) {
-            const customTitle = document.createElement('div');
-            customTitle.className = 'category-title';
-            customTitle.id = 'cat-custom';
-            customTitle.textContent = '✨ 自定义';
-            menuContainer.appendChild(customTitle);
-            customItems.forEach(item => {
-                menuContainer.appendChild(createDishCard(
-                    { name: item.name, emoji: item.emoji || '🍽️' }, true, item.id
-                ));
-            });
-        }
-    }
 
-    // 加载自定义菜单
-    function loadCustomMenu() {
-        db.ref('custom_menu').once('value').then(snapshot => {
-            customItems = [];
-            if (snapshot.exists()) {
-                snapshot.forEach(child => customItems.push(child.val()));
-            }
-            customItems.forEach(item => {
-                if (!menuData[item.name]) menuData[item.name] = { qty: 0, note: '' };
+            currentCategories[cat].items.forEach(dish => {
+                menuContainer.appendChild(createDishCard(dish));
             });
-            renderMenu();
-        }).catch(() => renderMenu());
+        }
     }
 
     // 分类导航点击
@@ -305,15 +323,20 @@
         ref.set({ id: ref.key, name, category, emoji: '🍽️' }).then(() => {
             document.getElementById('new-custom-name').value = '';
             showToast('已添加');
-            loadCustomMenu();
+            rebuildMenu();
         });
     };
 
     // 下单逻辑
     function collectItems() {
         const items = [];
-        for (let name in menuData) {
-            if (menuData[name].qty > 0) items.push({ name, qty: menuData[name].qty, note: menuData[name].note });
+        for (let cat in currentCategories) {
+            currentCategories[cat].items.forEach(dish => {
+                const data = menuData[dish.name];
+                if (data && data.qty > 0) {
+                    items.push({ name: dish.name, qty: data.qty, note: data.note });
+                }
+            });
         }
         return items;
     }
@@ -349,8 +372,9 @@
         });
         Promise.all(promises).then(() => {
             showToast('已下单');
+            // 重置数量
             for (let k in menuData) { menuData[k].qty = 0; menuData[k].note = ''; }
-            renderMenu();
+            rebuildMenu(); // 重新渲染以清零显示
             // 微信推送
             if (SENDKEY && SENDKEY !== 'SCTxxxxxxxxxxxxx') {
                 const xhr = new XMLHttpRequest();
@@ -412,8 +436,8 @@
         setTimeout(() => t.style.display = 'none', 2000);
     }
 
-    // 初始化
-    loadCustomMenu();
+    // 初始加载
+    rebuildMenu();
 </script>
 </body>
 </html>
