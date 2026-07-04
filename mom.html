@@ -6,6 +6,10 @@
   <title>妈妈看单</title>
   <style>
     body { font-family: sans-serif; background: #eef5ff; padding: 20px; }
+    h2 { color: #1e40af; }
+    .status { margin: 10px 0; font-size: 14px; color: #666; }
+    .status.success { color: #10b981; }
+    .status.error { color: #ef4444; }
     .order { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; border-left: 4px solid #f59e0b; }
     .order.accepted { border-left-color: #2563eb; }
     .order.done { border-left-color: #10b981; }
@@ -14,11 +18,14 @@
     .accept { background: #2563eb; }
     .reject { background: #ef4444; }
     .done { background: #10b981; }
+    .refresh-btn { background: #64748b; color: white; padding: 10px 20px; margin-bottom: 15px; }
   </style>
 </head>
 <body>
   <h2>📋 妈妈看单</h2>
-  <div id="list">连接中...</div>
+  <div id="status" class="status">⏳ 正在连接...</div>
+  <button class="refresh-btn" onclick="fetchOrders()">🔄 手动刷新</button>
+  <div id="list">暂无订单</div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -28,45 +35,52 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const list = document.getElementById('list');
+    const listDiv = document.getElementById('list');
+    const statusDiv = document.getElementById('status');
+    let lastOrderKeys = []; // 记录上次显示的订单 key，避免闪烁
 
-    console.log('Firebase 初始化完成');
+    function updateStatus(success, msg) {
+      statusDiv.textContent = msg;
+      statusDiv.className = 'status ' + (success ? 'success' : 'error');
+    }
 
-    // 先加载历史订单（防止 child_added 漏掉）
-    db.ref('orders').once('value', snapshot => {
-      console.log('历史订单数量:', snapshot.numChildren());
-      list.innerHTML = '';
-      if (!snapshot.exists()) {
-        list.textContent = '暂无订单';
-        return;
-      }
-      const orders = [];
-      snapshot.forEach(c => orders.push({ key: c.key, ...c.val() }));
-      orders.sort((a, b) => b.time.localeCompare(a.time));
-      orders.forEach(o => addOrder(o.key, o));
-    });
+    // 拉取所有订单并渲染
+    function fetchOrders() {
+      updateStatus(true, '⏳ 拉取中...');
+      db.ref('orders').once('value', snapshot => {
+        if (!snapshot.exists()) {
+          listDiv.innerHTML = '暂无订单';
+          updateStatus(true, '✅ 连接正常，暂无订单');
+          return;
+        }
+        const orders = [];
+        snapshot.forEach(child => orders.push({ key: child.key, ...child.val() }));
+        orders.sort((a, b) => b.time.localeCompare(a.time));
+        renderAll(orders);
+        updateStatus(true, `✅ 连接正常，共 ${orders.length} 条订单`);
+      }).catch(err => {
+        updateStatus(false, '❌ 连接失败：' + err.message);
+      });
+    }
 
-    // 监听新订单
-    db.ref('orders').on('child_added', snapshot => {
-      console.log('收到新订单:', snapshot.key, snapshot.val());
-      addOrder(snapshot.key, snapshot.val());
-    });
+    function renderAll(orders) {
+      listDiv.innerHTML = '';
+      orders.forEach(order => {
+        const card = createCard(order.key, order);
+        listDiv.appendChild(card);
+      });
+      if (orders.length === 0) listDiv.innerHTML = '暂无订单';
+    }
 
-    // 监听状态变化
-    db.ref('orders').on('child_changed', snapshot => {
-      const old = document.getElementById('order-' + snapshot.key);
-      if (old) old.remove();
-      addOrder(snapshot.key, snapshot.val());
-    });
+    function updateOrder(key, status) {
+      db.ref('orders/' + key).update({ status });
+    }
 
-    function addOrder(key, order) {
-      // 避免重复添加
-      if (document.getElementById('order-' + key)) return;
-      
-      const div = document.createElement('div');
-      div.className = `order ${order.status}`;
-      div.id = 'order-' + key;
-      div.innerHTML = `
+    function createCard(key, order) {
+      const card = document.createElement('div');
+      card.className = `order ${order.status}`;
+      card.id = 'order-' + key;
+      card.innerHTML = `
         <strong>${order.dish}</strong>
         ${order.note ? `<div>📝 ${order.note}</div>` : ''}
         <div style="color:#666; font-size:12px;">${order.time}</div>
@@ -78,17 +92,23 @@
           <button class="accept">接单</button>
           <button class="reject">今天没有</button>
         `;
-        btns.querySelector('.accept').onclick = () => db.ref('orders/' + key).update({ status: 'accepted' });
-        btns.querySelector('.reject').onclick = () => db.ref('orders/' + key).update({ status: 'rejected' });
+        btns.querySelector('.accept').onclick = () => updateOrder(key, 'accepted');
+        btns.querySelector('.reject').onclick = () => updateOrder(key, 'rejected');
       } else if (order.status === 'accepted') {
         btns.innerHTML = `<button class="done">做好了</button>`;
-        btns.querySelector('.done').onclick = () => db.ref('orders/' + key).update({ status: 'done' });
+        btns.querySelector('.done').onclick = () => updateOrder(key, 'done');
       } else {
         btns.innerHTML = order.status === 'done' ? '✅ 已完成' : '❌ 已拒绝';
       }
-      div.appendChild(btns);
-      list.prepend(div);
+      card.appendChild(btns);
+      return card;
     }
+
+    // 首次加载
+    fetchOrders();
+
+    // 每 3 秒自动刷新（保证实时性）
+    setInterval(fetchOrders, 3000);
   </script>
 </body>
 </html>
