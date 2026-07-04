@@ -20,7 +20,7 @@
         .top-btn {
             width: 100%; padding: 12px; border-radius: 14px; border: none;
             background: rgba(255,255,255,0.7); font-size: 15px; font-weight: 600;
-            margin: 12px 0; cursor: pointer;
+            margin: 8px 0; cursor: pointer;
         }
         .order-card {
             background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px;
@@ -68,10 +68,14 @@
         localStorage.setItem('b_hidden_orders', JSON.stringify(h));
     }
 
+    // 更新订单状态，并立即刷新界面
     function updateOrder(key, status) {
-        db.ref('orders/' + key).update({ status });
+        db.ref('orders/' + key).update({ status }).then(() => {
+            fetchOrders();  // 更新成功后立刻刷新
+        });
     }
 
+    // 拉取所有订单并渲染
     function fetchOrders() {
         db.ref('orders').once('value', snapshot => {
             listDiv.innerHTML = '';
@@ -119,31 +123,37 @@
         });
     }
 
-    // 轮询 + 新订单语音提示
+    // 定期轮询 + 新订单语音（保留，但也可以立即响应）
     let prevCount = 0;
-    setInterval(() => {
+    function checkNewOrders() {
         db.ref('orders').once('value', snap => {
             const count = snap.numChildren();
             if (count > prevCount) {
                 playSound();
-                if ('speechSynthesis' in window) {
-                    const latest = [];
-                    snap.forEach(c => latest.push(c.val()));
-                    const last = latest[latest.length-1];
-                    if (last && last.status === 'new') {
+                const orders = [];
+                snap.forEach(c => orders.push(c.val()));
+                const last = orders[orders.length-1];
+                if (last && last.status === 'new') {
+                    if ('speechSynthesis' in window) {
                         const u = new SpeechSynthesisUtterance('新订单：' + last.dish);
                         u.lang = 'zh-CN'; window.speechSynthesis.speak(u);
+                    }
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('🍽️ 新订单', { body: last.dish });
                     }
                 }
             }
             prevCount = count;
-            fetchOrders();
+            fetchOrders(); // 每次轮询也刷新一次
         });
-    }, 5000);
+    }
 
-    // 立即执行
-    fetchOrders();
+    // 启动定时轮询（每5秒）
+    setInterval(checkNewOrders, 5000);
+    // 立即执行第一次
+    checkNewOrders();
 
+    // 清除按钮：隐藏已完成/已拒绝
     document.getElementById('clear-local').onclick = () => {
         db.ref('orders').once('value', snapshot => {
             const toHide = [];
@@ -152,11 +162,12 @@
             });
             if (!toHide.length) return alert('没有可隐藏的订单');
             addHidden(toHide);
-            fetchOrders();
+            fetchOrders(); // 立即刷新
             alert('已隐藏');
         });
     };
 
+    // 激活音频上下文（用户交互后）
     document.body.addEventListener('click', () => sound.play().catch(()=>{}), { once: true });
 </script>
 </body>
