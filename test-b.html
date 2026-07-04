@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>📦 数据库原始内容</h2>
+  <pre id="raw" style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:10px;">加载中...</pre>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://diancai-fecb0-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const rawDiv = document.getElementById('raw');
+    db.ref('orders').on('value', snapshot => {
+      if (snapshot.exists()) {
+        const data = {};
+        snapshot.forEach(child => data[child.key] = child.val());
+        rawDiv.textContent = JSON.stringify(data, null, 2);
+      } else {
+        rawDiv.textContent = 'orders 节点为空';
+      }
+    });
+    // 显示连接状态
+    firebase.database().ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) {
+        rawDiv.textContent += '\n\n✅ Firebase 已连接';
+      } else {
+        rawDiv.textContent += '\n\n❌ 未连接';
+      }
+    });
+  </script>
+</body>
+</html>
